@@ -1,10 +1,10 @@
-const FactoryModel = require("../model/factory.model");
-const typeOfFactoryModel = require("../../typeOfFactory/model/typeOfFactory.model");
+const itemsFactory = require("../model/itemsFactory.model");
+const factoryModel = require("../../factory/model/factory.model");
 const convertArray = require("../../../core/shared/errorForm");
 const { validationResult } = require("express-validator");
 
 // Create a new factory
-exports.createFactory = async (req, res) => {
+exports.createItemsFactory = async (req, res) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     const convArray = new convertArray(errors.array());
@@ -15,26 +15,26 @@ exports.createFactory = async (req, res) => {
     });
   }
   try {
-    const existingFactory = await FactoryModel.findOne({ name: req.body.name });
+    const existingFactory = await itemsFactory.findOne({ name: req.body.name });
     if (existingFactory) {
       return res.status(400).json({
         statusCode: res.statusCode,
-        message: "Factory already exists",
+        message: "Item already exists",
       });
     }
-    const existingType = await typeOfFactoryModel.findOne({
-      _id: req.body.typeOfFactoryId,
+    const existingType = await factoryModel.findOne({
+      _id: req.body.factoryId,
     });
     if (!existingType) {
       return res.status(400).json({
         statusCode: res.statusCode,
-        message: "not exist type of factory",
+        message: "not exist Factory",
       });
     }
-    await FactoryModel.create(req.body);
+    await itemsFactory.create(req.body);
     return res.status(201).json({
       statusCode: res.statusCode,
-      message: "create Factory successfully",
+      message: "create Item successfully",
     });
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -42,9 +42,9 @@ exports.createFactory = async (req, res) => {
 };
 
 // Get all factories
-exports.getAllFactories = async (req, res) => {
+exports.getAllItemsFactories = async (req, res) => {
   try {
-    const factories = await FactoryModel.find().populate("typeOfFactoryId");
+    const factories = await itemsFactory.find().populate("factoryId");
     res.status(200).json({
       statusCode: res.statusCode,
       message: "successfully",
@@ -56,13 +56,13 @@ exports.getAllFactories = async (req, res) => {
 };
 
 // Get a specific factory by ID
-exports.getFactoryById = async (req, res) => {
+exports.getItemsFactoryById = async (req, res) => {
   try {
-    const factory = await FactoryModel.findById(req.params.id).populate(
-      "typeOfFactoryId"
-    );
+    const factory = await itemsFactory
+      .findById(req.params.id)
+      .populate("factoryId");
     if (!factory) {
-      return res.status(404).json({ message: "Factory not found" });
+      return res.status(404).json({ message: "Item not found" });
     }
     res.status(200).json({
       statusCode: res.statusCode,
@@ -74,24 +74,33 @@ exports.getFactoryById = async (req, res) => {
   }
 };
 
-// Get factories by TypeOfFactoryId
-exports.getFactoriesByTypeOfFactoryId = async (req, res) => {
+// Get factories by factoryId
+exports.getItemsFactoryByFactoryId = async (req, res) => {
   try {
-    const factories = await FactoryModel.find({
-      typeOfFactoryId: req.params.typeOfFactoryId,
+    const itemFactory = await itemsFactory.find({
+      factoryId: req.params.factoryId,
     });
+    if (!itemFactory) {
+      return res.status(404).json({ message: "Item not found", data: [] });
+    }
     res.status(200).json({
       statusCode: res.statusCode,
       message: "successfully",
-      data: factories,
+      data: itemFactory,
     });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
 // Update a factory by ID
-exports.updateFactory = async (req, res) => {
+exports.updateItemsFactory = async (req, res) => {
   const errors = validationResult(req);
+  if (!req.params.id) {
+    return res.status(400).json({
+      statusCode: res.statusCode,
+      message: "ID Is Requierd"
+    });
+  }
   if (!errors.isEmpty()) {
     const convArray = new convertArray(errors.array());
     return res.status(400).json({
@@ -101,24 +110,24 @@ exports.updateFactory = async (req, res) => {
     });
   }
   try {
-    let factoryToUpdate = await FactoryModel.findOne({ _id: req.params.id });
-    if (!factoryToUpdate) {
-      return res
-        .status(404)
-        .json({
-          message: "Factory not found",
-          data: [],
-        });
+    let itemsFactoryToUpdate = await itemsFactory.findOne({
+      _id: req.params.id,
+    });
+    if (!itemsFactoryToUpdate) {
+      return res.status(404).json({
+        message: "Items not found",
+        data: [],
+      });
     }
 
-    factoryToUpdate.name = req.body.name || factoryToUpdate.name;
-    factoryToUpdate.typeOfFactoryId =
-      req.body.typeOfFactoryId || factoryToUpdate.typeOfFactoryId;
+    itemsFactoryToUpdate.name = req.body.name || itemsFactoryToUpdate.name;
+    itemsFactoryToUpdate.factoryId =
+      req.body.factoryId || itemsFactoryToUpdate.factoryId;
 
-    await factoryToUpdate.save();
+    await itemsFactoryToUpdate.save();
     res.status(201).json({
       statusCode: res.statusCode,
-      message: "update Factory successfully",
+      message: "update Item successfully",
     });
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -126,20 +135,20 @@ exports.updateFactory = async (req, res) => {
 };
 
 // Delete a factory by ID
-exports.deleteFactory = async (req, res) => {
+exports.deleteItemsFactory = async (req, res) => {
   try {
     const filter = { _id: req.params.id };
-    const existingType = await FactoryModel.findOne(filter);
+    const existingType = await itemsFactory.findOne(filter);
     if (!existingType) {
       return res.status(404).json({
         statusCode: res.statusCode,
-        message: "Not Found Factory",
+        message: "Not Found Item",
       });
     }
-    await FactoryModel.deleteOne(filter);
+    await itemsFactory.deleteOne(filter);
     res.status(201).json({
       statusCode: res.statusCode,
-      message: "delete Factory successfully",
+      message: "delete Item successfully",
     });
   } catch (error) {
     res.status(500).json({ message: error.message });

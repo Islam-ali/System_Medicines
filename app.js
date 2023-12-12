@@ -26,8 +26,11 @@ app.use(express.static(path.join(__dirname, "public")));
 //   res.json('hello')
 // });
 app.use('/auth', require('./modules/users/routes/auth.route') );
+app.use('/classifications', require('./modules/classification/routes/classification.route') );
 app.use('/typeOfFactory', require('./modules/typeOfFactory/routes/typeOfFactory.route') );
 app.use('/factory', require('./modules/factory/routes/factory.route') );
+app.use('/itemsFactory', require('./modules/itemsFactory/routes/itemsFactory.route') );
+
 
 // catch 404 and forward to error handler
 app.use(function (req, res, next) {

@@ -1,4 +1,6 @@
 const typeOfFactoryModel = require("../model/typeOfFactory.model");
+const { validationResult } = require("express-validator");
+const convertArray = require("../../../core/shared/errorForm");
 
 // get All type of Factories
 exports.getTypeOfFactories = async (req, res, next) => {
@@ -15,15 +17,43 @@ exports.getTypeOfFactories = async (req, res, next) => {
       .json({ statusCode: res.statusCode, message: error.message });
   }
 };
+
+// get list of types Factory
+exports.getListOfTypesFactoryByClassificationId = async (req, res) => {
+  try {
+    const factory = await typeOfFactoryModel.find({
+      classificationId: req.params.id,
+    });
+    if (!factory) {
+      return res
+        .status(404)
+        .json({ message: "types of Factories not found", data: factory });
+    }
+    res.status(200).json({
+      statusCode: res.statusCode,
+      message: "successfully",
+      data: factory,
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 // create type of Factory
 exports.createTypeOfFactory = async (req, res, next) => {
-  const { type } = req.body;
-  if (!type)
-    return res
-      .status(400)
-      .json({ statusCode: res.statusCode, message: "type is Reqired" });
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    const convArray = new convertArray(errors.array());
+    return res.status(400).json({
+      statusCode: res.statusCode,
+      message: "invalid Error",
+      errors: convArray.errorForm(),
+    });
+  }
   try {
-    const existingType = await typeOfFactoryModel.findOne({ type });
+    const existingType = await typeOfFactoryModel.findOne({
+      type: req.body.type,
+    });
     if (existingType) {
       return res.status(400).json({
         statusCode: res.statusCode,
@@ -31,7 +61,7 @@ exports.createTypeOfFactory = async (req, res, next) => {
       });
     }
 
-    const newtypeOfFactory = new typeOfFactoryModel({ type });
+    const newtypeOfFactory = new typeOfFactoryModel(req.body);
     await newtypeOfFactory.save();
     res.status(201).json({
       statusCode: res.statusCode,
@@ -46,13 +76,18 @@ exports.createTypeOfFactory = async (req, res, next) => {
 
 // update type of Factory
 exports.updateTypeOfFactory = async (req, res, next) => {
-  const { type } = req.body;
-  if (!type)
-    return res
-      .status(400)
-      .json({ statusCode: res.statusCode, message: "type is Reqired" });
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    const convArray = new convertArray(errors.array());
+    return res.status(400).json({
+      statusCode: res.statusCode,
+      message: "invalid Error",
+      errors: convArray.errorForm(),
+    });
+  }
   try {
-    const existingType = await typeOfFactoryModel.findOne({ type });
+    const filterexist = {type:req.body.type , _id:{ $ne:req.body.id}}
+    const existingType = await typeOfFactoryModel.findOne(filterexist);
     if (existingType) {
       return res.status(400).json({
         statusCode: res.statusCode,
@@ -76,15 +111,14 @@ exports.updateTypeOfFactory = async (req, res, next) => {
 };
 
 // Delete Type Of Factory
-exports.deleteTypeOfFactory = async (req , res) => {
-  try{
+exports.deleteTypeOfFactory = async (req, res) => {
+  try {
     const filter = { _id: req.params.id };
     const existingType = await typeOfFactoryModel.findOne(filter);
     if (!existingType) {
-      return res.status(400).json({
+      return res.status(404).json({
         statusCode: res.statusCode,
         message: "Not Found type Of Factory",
-        data: filter
       });
     }
     await typeOfFactoryModel.deleteOne(filter);
@@ -92,9 +126,9 @@ exports.deleteTypeOfFactory = async (req , res) => {
       statusCode: res.statusCode,
       message: "deleted type Of Factory successfully",
     });
-  }catch (error) {
+  } catch (error) {
     res
       .status(500)
       .json({ statusCode: res.statusCode, message: error.message });
   }
-}
+};

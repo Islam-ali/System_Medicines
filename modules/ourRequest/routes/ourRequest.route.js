@@ -20,7 +20,7 @@ router.get('/getOurRequestById/:id', verifyToken , checkUserRole('admin') , OurR
 // Update a factory by ID
 router.put('/updateOurRequest/:id', verifyToken , checkUserRole('admin') , validateOurRequest , OurRequestService.updateOurRequest);
 
-// // Delete a factory by ID
-// router.delete('/deleteOurRequest/:id',  verifyToken , checkUserRole('admin') , OurRequestService.deleteOurRequest);
+// Delete a factory by ID
+router.delete('/deleteOurRequest/:id',  verifyToken , checkUserRole('admin') , OurRequestService.deleteOurRequest);
 
 module.exports = router;

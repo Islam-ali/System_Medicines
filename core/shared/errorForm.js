@@ -5,7 +5,6 @@ class convertArray {
   }
   errorForm = () => {
     const obj = {};
-    console.log(this.arr);
     this.arr.forEach((element, index) => {
       if (!obj[index]) {
         obj[element.path] = [];

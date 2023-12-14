@@ -3,9 +3,20 @@ const itemsFactoryModel = require("../../itemsFactory/model/itemsFactory.model")
 const convertArray = require("../../../core/shared/errorForm");
 const { validationResult } = require("express-validator");
 
+class calculate {
+  constructor(unitsNumber, unitsCost) {
+    this.unitsNumber = unitsNumber;
+    this.unitsCost = unitsCost;
+  }
+
+  totalCost(){
+    return this.unitsNumber * this.unitsCost
+  }
+
+}
 // Create a new OurRequest
 exports.createOurRequest = async (req, res) => {
-  var body = Object.assign({} , req.body)
+  var body = Object.assign({}, req.body);
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     const convArray = new convertArray(errors.array());
@@ -26,11 +37,9 @@ exports.createOurRequest = async (req, res) => {
         message: "not exist item Factory",
       });
     }
-    // calculation total cost
-    let totalcost = 0;
-    totalcost = (body.unitsNumber * body.unitsCost);
-    body['totalcost'] = totalcost;
-    
+
+    body["totalcost"] = new calculate(body.unitsNumber , body.unitsCost).totalCost();
+
     await OurRequest.create(body);
     return res.status(201).json({
       statusCode: res.statusCode,
@@ -58,9 +67,9 @@ exports.getAllOurRequests = async (req, res) => {
 // Get a specific factory by ID
 exports.getOurRequestById = async (req, res) => {
   try {
-    const objOurRequest = await OurRequest
-      .findById(req.params.id)
-      .populate("itemFactoryId");
+    const objOurRequest = await OurRequest.findById(req.params.id).populate(
+      "itemFactoryId"
+    );
     if (!objOurRequest) {
       return res.status(404).json({ message: "Item not found" });
     }
@@ -98,7 +107,7 @@ exports.updateOurRequest = async (req, res) => {
   if (!req.params.id) {
     return res.status(400).json({
       statusCode: res.statusCode,
-      message: "ID Is Requierd"
+      message: "ID Is Requierd",
     });
   }
   if (!errors.isEmpty()) {
@@ -110,24 +119,36 @@ exports.updateOurRequest = async (req, res) => {
     });
   }
   try {
-    let OurRequestToUpdate = await OurRequest.findOne({
-      _id: req.params.id,
+    let objOurRequest = await OurRequest.findOne({
+      _id: req.body.id,
     });
-    if (!OurRequestToUpdate) {
+    if (!objOurRequest) {
       return res.status(404).json({
-        message: "Items not found",
+        message: "Our Request not found",
         data: [],
       });
     }
+    const objItemFactory = await itemsFactoryModel.findOne({
+      _id: req.body.itemFactoryId,
+    });
+    if (!objItemFactory) {
+      return res.status(400).json({
+        statusCode: res.statusCode,
+        message: "Item not exists",
+      });
+    }
 
-    OurRequestToUpdate.name = req.body.name || OurRequestToUpdate.name;
-    OurRequestToUpdate.factoryId =
-      req.body.factoryId || OurRequestToUpdate.factoryId;
+    req.body["totalcost"] = new calculate(req.body.unitsNumber , req.body.unitsCost).totalCost();
+    
+    const filter = { _id: req.body.id };
+    const updateDocument = {
+      $set: req.body,
+    };
 
-    await OurRequestToUpdate.save();
+    await OurRequest.updateOne(filter, updateDocument);
     res.status(201).json({
       statusCode: res.statusCode,
-      message: "update Item successfully",
+      message: "update Our Request successfully",
     });
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -138,8 +159,8 @@ exports.updateOurRequest = async (req, res) => {
 exports.deleteOurRequest = async (req, res) => {
   try {
     const filter = { _id: req.params.id };
-    const existingType = await OurRequest.findOne(filter);
-    if (!existingType) {
+    const objOurRequest = await OurRequest.findOne(filter);
+    if (!objOurRequest) {
       return res.status(404).json({
         statusCode: res.statusCode,
         message: "Not Found Item",
@@ -148,7 +169,7 @@ exports.deleteOurRequest = async (req, res) => {
     await OurRequest.deleteOne(filter);
     res.status(201).json({
       statusCode: res.statusCode,
-      message: "delete Item successfully",
+      message: "delete Our Request successfully",
     });
   } catch (error) {
     res.status(500).json({ message: error.message });

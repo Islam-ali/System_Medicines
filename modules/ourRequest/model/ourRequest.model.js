@@ -10,7 +10,8 @@ const ourRequestSchema = new mongoose.Schema({
   unitsNumber: { type: Number, required: true },
   unitsCost: { type: Number, required: true },
   totalcost: { type: Number },
-  wasPaid: { type: Number },
+  wasPaid: { type: Number , default : 0},
+  balance: { type: Number , default : 0},
   recevingDate: { type: Date },
   listOfMaterials: [
     {

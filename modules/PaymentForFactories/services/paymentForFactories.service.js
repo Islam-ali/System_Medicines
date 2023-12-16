@@ -30,6 +30,16 @@ exports.createPaymentForFactory = async (req, res) => {
       });
     }
 
+    // chach cashAmount and balance 
+    let oldBalance = 0;
+    oldBalance = new calculatePaymentFactory().calculateBalance(objOurRequest.totalcost , objOurRequest.wasPaid)
+    if(cashAmount > oldBalance){
+      return res.status(400).json({
+        statusCode: res.statusCode,
+        message: "cach Amount More than Balance",
+      });
+    }
+
     // calculate (wasPaid)
     let wasPaid = 0 ;
     wasPaid = new calculatePaymentFactory().addWasPaid(objOurRequest.wasPaid , cashAmount)
@@ -64,7 +74,21 @@ exports.createPaymentForFactory = async (req, res) => {
 // Get all factories
 exports.getAllPaymentForFactories = async (req, res) => {
   try {
-    const PaymentForFactories = await PaymentForFactory.find({}).populate("ourRequestId");
+    const PaymentForFactories = await PaymentForFactory.find({})
+    .populate({
+    path: 'ourRequestId', 
+    populate: {
+      path: 'itemFactoryId', 
+      model: 'ItemsFactory',
+      select: 'name -_id' ,
+      populate:{
+        path: 'factoryId', 
+        model: 'Factory',
+        select: 'name -_id' ,
+      }
+    }
+  })
+
     res.status(200).json({
       statusCode: res.statusCode,
       message: "successfully",

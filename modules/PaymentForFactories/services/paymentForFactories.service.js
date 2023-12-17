@@ -1,6 +1,6 @@
 const PaymentForFactory = require("../model/paymentForFactories.model");
 const ourRequest = require("../../ourRequest/model/ourRequest.model");
-const FactoryAccountLogModel = require("../../FactoryAccounts/model/factoryAccount.model")
+const FactoryAccountLogModel = require("../../FactoryAccounts/model/factoryAccount.model");
 const convertArray = require("../../../core/shared/errorForm");
 const calculatePaymentFactory = require("../../../core/shared/calculatePaymentFactory");
 const { validationResult } = require("express-validator");
@@ -18,7 +18,6 @@ exports.createPaymentForFactory = async (req, res) => {
     });
   }
   try {
-
     const { ourRequestId, cashAmount } = req.body;
     const objOurRequest = await ourRequest.findOne({
       _id: ourRequestId,
@@ -30,10 +29,13 @@ exports.createPaymentForFactory = async (req, res) => {
       });
     }
 
-    // chach cashAmount and balance 
+    // chach cashAmount and balance
     let oldBalance = 0;
-    oldBalance = new calculatePaymentFactory().calculateBalance(objOurRequest.totalcost , objOurRequest.wasPaid)
-    if(cashAmount > oldBalance){
+    oldBalance = new calculatePaymentFactory().calculateBalance(
+      objOurRequest.totalcost,
+      objOurRequest.wasPaid
+    );
+    if (cashAmount > oldBalance) {
       return res.status(400).json({
         statusCode: res.statusCode,
         message: "cach Amount More than Balance",
@@ -41,25 +43,35 @@ exports.createPaymentForFactory = async (req, res) => {
     }
 
     // calculate (wasPaid)
-    let wasPaid = 0 ;
-    wasPaid = new calculatePaymentFactory().addWasPaid(objOurRequest.wasPaid , cashAmount)
-    
+    let wasPaid = 0;
+    wasPaid = new calculatePaymentFactory().addWasPaid(
+      objOurRequest.wasPaid,
+      cashAmount
+    );
+
     // update Our Request
     const filter = { _id: ourRequestId };
     const updateDocument = {
-      $set: {wasPaid:wasPaid},
+      $set: { wasPaid: wasPaid },
     };
     await ourRequest.updateOne(filter, updateDocument);
-    
-    // calculate (balance)
-    let balance = 0 ;
-    balance = new calculatePaymentFactory().calculateBalance(objOurRequest.totalcost , wasPaid)
-    
-    // create PaymentForFactory
-    await PaymentForFactory.create(body);
 
+    // calculate (balance)
+    let balance = 0;    
+    let newPaymentForFactoryId = 0;
+    balance = new calculatePaymentFactory().calculateBalance(
+      objOurRequest.totalcost,
+      wasPaid
+    );
+
+    // create PaymentForFactory
+    const newPaymentForFactory = await PaymentForFactory.create(body);
+    if (newPaymentForFactory) {
+      newPaymentForFactoryId = newPaymentForFactory._id;
+    }
     // create Factory Account Log
-    body['balance'] = balance;
+    body["balance"] = balance;
+    body["paymentForFactoryId"] = newPaymentForFactoryId;
     await FactoryAccountLogModel.create(body);
 
     return res.status(201).json({
@@ -74,20 +86,19 @@ exports.createPaymentForFactory = async (req, res) => {
 // Get all factories
 exports.getAllPaymentForFactories = async (req, res) => {
   try {
-    const PaymentForFactories = await PaymentForFactory.find({})
-    .populate({
-    path: 'ourRequestId', 
-    populate: {
-      path: 'itemFactoryId', 
-      model: 'ItemsFactory',
-      select: 'name -_id' ,
-      populate:{
-        path: 'factoryId', 
-        model: 'Factory',
-        select: 'name -_id' ,
-      }
-    }
-  })
+    const PaymentForFactories = await PaymentForFactory.find({}).populate({
+      path: "ourRequestId",
+      populate: {
+        path: "itemFactoryId",
+        model: "ItemsFactory",
+        select: "name -_id",
+        populate: {
+          path: "factoryId",
+          model: "Factory",
+          select: "name -_id",
+        },
+      },
+    });
 
     res.status(200).json({
       statusCode: res.statusCode,
@@ -102,9 +113,9 @@ exports.getAllPaymentForFactories = async (req, res) => {
 // Get a specific factory by ID
 exports.getPaymentForFactoryById = async (req, res) => {
   try {
-    const objPaymentForFactory = await PaymentForFactory.findById(req.params.id).populate(
-      "ourRequestId"
-    );
+    const objPaymentForFactory = await PaymentForFactory.findById(
+      req.params.id
+    ).populate("ourRequestId");
     if (!objPaymentForFactory) {
       return res.status(404).json({ message: "Item not found" });
     }
@@ -171,7 +182,7 @@ exports.updatePaymentForFactory = async (req, res) => {
         statusCode: res.statusCode,
         message: "Item not exists",
       });
-    }    
+    }
     const filter = { _id: req.body.id };
     const updateDocument = {
       $set: req.body,

@@ -4,9 +4,12 @@ const FactoryAccountLogModel = require("../../FactoryAccounts/model/factoryAccou
 const convertArray = require("../../../core/shared/errorForm");
 const calculatePaymentFactory = require("../../../core/shared/calculatePaymentFactory");
 const { validationResult } = require("express-validator");
-
+const mongoose = require("mongoose");
 // Create a new PaymentForFactory
 exports.createPaymentForFactory = async (req, res) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
   var body = Object.assign({}, req.body);
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
@@ -57,7 +60,7 @@ exports.createPaymentForFactory = async (req, res) => {
     await ourRequest.updateOne(filter, updateDocument);
 
     // calculate (balance)
-    let balance = 0;    
+    let balance = 0;
     let newPaymentForFactoryId = 0;
     balance = new calculatePaymentFactory().calculateBalance(
       objOurRequest.totalcost,
@@ -74,11 +77,16 @@ exports.createPaymentForFactory = async (req, res) => {
     body["paymentForFactoryId"] = newPaymentForFactoryId;
     await FactoryAccountLogModel.create(body);
 
+    await session.commitTransaction();
+    session.endSession();
+
     return res.status(201).json({
       statusCode: res.statusCode,
       message: "create Payment For Factory successfully",
     });
   } catch (error) {
+    await session.abortTransaction();
+    session.endSession();
     res.status(500).json({ message: error.message });
   }
 };
@@ -202,17 +210,36 @@ exports.updatePaymentForFactory = async (req, res) => {
 exports.deletePaymentForFactory = async (req, res) => {
   try {
     const filter = { _id: req.params.id };
-    const objPaymentForFactory = await PaymentForFactory.findOne(filter);
+    const objPaymentForFactory = await PaymentForFactory.findOne(
+      filter
+    ).populate("ourRequestId");
     if (!objPaymentForFactory) {
       return res.status(404).json({
         statusCode: res.statusCode,
         message: "Not Found Item",
       });
     }
+    // claculate was paid
+    let wasPaid = 0;
+    wasPaid = new calculatePaymentFactory().RemoveWasPaid(
+      objPaymentForFactory.ourRequestId.wasPaid,
+      objPaymentForFactory.cashAmount
+    );
+
+    // update Our Request
+    const filterOurRequest = { _id: objPaymentForFactory.ourRequestId._id };
+    const updateDocument = {
+      $set: { wasPaid: wasPaid },
+    };
+    await ourRequest.updateOne(filterOurRequest, updateDocument);
+    // Remove Account Log
+     
+    // Remove Payment For Factory
     await PaymentForFactory.deleteOne(filter);
     res.status(201).json({
       statusCode: res.statusCode,
       message: "delete Payment For Factory successfully",
+      data: objPaymentForFactory,
     });
   } catch (error) {
     res.status(500).json({ message: error.message });

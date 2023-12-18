@@ -1,10 +1,10 @@
 class calculatePaymentFctory {
 
-  addWasPaid(wasPaid , cashAmount){
+  IncreaseWasPaid(wasPaid , cashAmount){
     return wasPaid + cashAmount
   }
 
-  RemoveWasPaid(wasPaid , cashAmount){
+  DecreaseWasPaid(wasPaid , cashAmount){
     return wasPaid - cashAmount
   }
 

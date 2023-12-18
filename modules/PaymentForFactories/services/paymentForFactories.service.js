@@ -5,9 +5,10 @@ const convertArray = require("../../../core/shared/errorForm");
 const calculatePaymentFactory = require("../../../core/shared/calculatePaymentFactory");
 const { validationResult } = require("express-validator");
 const mongoose = require("mongoose");
+
 // Create a new PaymentForFactory
 exports.createPaymentForFactory = async (req, res) => {
-  const session = await mongoose.startSession();
+  let session = await mongoose.startSession();
   session.startTransaction();
 
   var body = Object.assign({}, req.body);
@@ -28,7 +29,7 @@ exports.createPaymentForFactory = async (req, res) => {
     if (!objOurRequest) {
       return res.status(400).json({
         statusCode: res.statusCode,
-        message: "not exist item Factory",
+        message: "not exist Request",
       });
     }
 
@@ -47,7 +48,7 @@ exports.createPaymentForFactory = async (req, res) => {
 
     // calculate (wasPaid)
     let wasPaid = 0;
-    wasPaid = new calculatePaymentFactory().addWasPaid(
+    wasPaid = new calculatePaymentFactory().IncreaseWasPaid(
       objOurRequest.wasPaid,
       cashAmount
     );
@@ -155,9 +156,12 @@ exports.getPaymentForFactoryById = async (req, res) => {
 //     res.status(500).json({ message: error.message });
 //   }
 // };
+
 // Update a factory by ID
 exports.updatePaymentForFactory = async (req, res) => {
   const errors = validationResult(req);
+  let session = await mongoose.startSession();
+  session.startTransaction();
   if (!req.params.id) {
     return res.status(400).json({
       statusCode: res.statusCode,
@@ -173,45 +177,9 @@ exports.updatePaymentForFactory = async (req, res) => {
     });
   }
   try {
-    let objPaymentForFactory = await PaymentForFactory.findOne({
-      _id: req.body.id,
-    });
-    if (!objPaymentForFactory) {
-      return res.status(404).json({
-        message: "Payment For Factory not found",
-        data: [],
-      });
-    }
-    const objOurRequest = await ourRequest.findOne({
-      _id: req.body.ourRequestId,
-    });
-    if (!objOurRequest) {
-      return res.status(400).json({
-        statusCode: res.statusCode,
-        message: "Item not exists",
-      });
-    }
-    const filter = { _id: req.body.id };
-    const updateDocument = {
-      $set: req.body,
-    };
-
-    await PaymentForFactory.updateOne(filter, updateDocument);
-    res.status(201).json({
-      statusCode: res.statusCode,
-      message: "update Payment For Factory successfully",
-    });
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-};
-
-// Delete a factory by ID
-exports.deletePaymentForFactory = async (req, res) => {
-  try {
-    const filter = { _id: req.params.id };
+    const filterPaymentForFactoryId = { _id: req.params.id };
     const objPaymentForFactory = await PaymentForFactory.findOne(
-      filter
+      filterPaymentForFactoryId
     ).populate("ourRequestId");
     if (!objPaymentForFactory) {
       return res.status(404).json({
@@ -219,9 +187,121 @@ exports.deletePaymentForFactory = async (req, res) => {
         message: "Not Found Item",
       });
     }
+    const { ourRequestId, cashAmount } = req.body;
+    const oldObjOurRequest = await ourRequest.findOne({
+      _id: ourRequestId,
+    });
+    if (!oldObjOurRequest) {
+      return res.status(400).json({
+        statusCode: res.statusCode,
+        message: "not exist Request",
+      });
+    }
+
+    // claculate was paid
+    let decreaseWasPaid = 0;
+    decreaseWasPaid = new calculatePaymentFactory().DecreaseWasPaid(
+      objPaymentForFactory.ourRequestId.wasPaid,
+      objPaymentForFactory.cashAmount
+    );
+
+    // update Our Request
+    const filterOurRequest = { _id: objPaymentForFactory.ourRequestId._id };
+    const updateDocumentOurRequest = {
+      $set: { wasPaid: decreaseWasPaid },
+    };
+    await ourRequest.updateOne(filterOurRequest, updateDocumentOurRequest);
+    
+
+    // Deleted Account Log
+    await FactoryAccountLogModel.deleteOne({
+      paymentForFactoryId:  req.params.id,
+    });
+
+    // increse all balance (add cach Amount)
+    await FactoryAccountLogModel.updateMany(
+      { ourRequestId: objPaymentForFactory.ourRequestId._id },
+      {
+        $inc: { balance: objPaymentForFactory.cashAmount },
+      }
+    );
+
+    // Increase (wasPaid)
+    let increaseWasPaid = 0;
+    increaseWasPaid = new calculatePaymentFactory().IncreaseWasPaid(
+      decreaseWasPaid,
+      cashAmount
+    );
+
+    // update Our Request
+    const filter = { _id: ourRequestId };
+    const updateDocument = {
+      $set: { wasPaid: increaseWasPaid },
+    };
+    await ourRequest.updateOne(filter, updateDocument);
+
+    // calculate (balance)
+    let newBalance = 0;
+    newBalance = new calculatePaymentFactory().calculateBalance(
+      oldObjOurRequest.totalcost,
+      increaseWasPaid
+    );
+    if (cashAmount > newBalance) {
+      return res.status(400).json({
+        statusCode: res.statusCode,
+        message: "cach Amount More than Balance",
+      });
+    }
+    // Update Payment For Factory
+
+    await PaymentForFactory.updateOne(
+      filterPaymentForFactoryId,
+      {
+        $set: req.body,
+      }
+    );
+
+    // create Factory Account Log
+    const logData = {
+      ...req.body,
+      balance: newBalance,
+      paymentForFactoryId: req.params.id,
+    };
+    await FactoryAccountLogModel.create(logData);
+
+    await session.commitTransaction();
+    session.endSession();
+
+    res.status(201).json({
+      statusCode: res.statusCode,
+      message: "Updated Payment successfully",
+    });
+  } catch (error) {
+    await session.abortTransaction();
+    session.endSession();
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// Delete a factory by ID
+exports.deletePaymentForFactory = async (req, res) => {
+  let session = await mongoose.startSession();
+  session.startTransaction();
+  try {
+    const filterPaymentForFactoryId = { _id: req.params.id };
+    const objPaymentForFactory = await PaymentForFactory.findOne(
+      filterPaymentForFactoryId
+    ).populate("ourRequestId");
+    if (!objPaymentForFactory) {
+      return res.status(404).json({
+        statusCode: res.statusCode,
+        message: "Not Found Item",
+      });
+    }
+
     // claculate was paid
     let wasPaid = 0;
-    wasPaid = new calculatePaymentFactory().RemoveWasPaid(
+    wasPaid = new calculatePaymentFactory().DecreaseWasPaid(
       objPaymentForFactory.ourRequestId.wasPaid,
       objPaymentForFactory.cashAmount
     );
@@ -232,16 +312,40 @@ exports.deletePaymentForFactory = async (req, res) => {
       $set: { wasPaid: wasPaid },
     };
     await ourRequest.updateOne(filterOurRequest, updateDocument);
+
     // Remove Account Log
-     
+    await FactoryAccountLogModel.deleteOne({
+      paymentForFactoryId: filterPaymentForFactoryId,
+    });
+
+    // increse all balance (add cach Amount)
+    await FactoryAccountLogModel.updateMany(
+      { ourRequestId: objPaymentForFactory.ourRequestId._id },
+      {
+        $inc: { balance: objPaymentForFactory.cashAmount },
+      }
+    );
+
+    // // calculate (balance)
+    // let balance = 0;
+    // balance = new calculatePaymentFactory().calculateBalance(
+    //   objPaymentForFactory.ourRequestId.totalcost,
+    //   wasPaid
+    // );
+
     // Remove Payment For Factory
-    await PaymentForFactory.deleteOne(filter);
+    await PaymentForFactory.deleteOne(filterPaymentForFactoryId);
+
+    await session.commitTransaction();
+    session.endSession();
+
     res.status(201).json({
       statusCode: res.statusCode,
-      message: "delete Payment For Factory successfully",
-      data: objPaymentForFactory,
+      message: "deleted Payment successfully",
     });
   } catch (error) {
+    await session.abortTransaction();
+    session.endSession();
     res.status(500).json({ message: error.message });
   }
 };

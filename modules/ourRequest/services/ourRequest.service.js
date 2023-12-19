@@ -106,7 +106,6 @@ exports.getOurRequestByFactoryId = async (req, res) => {
   }
 };
 
-
 // Update a factory by ID
 exports.updateOurRequest = async (req, res) => {
   const errors = validationResult(req);

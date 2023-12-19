@@ -14,8 +14,13 @@ router.get('/getAllOurRequests', verifyToken , checkUserRole('admin') ,OurReques
 // Get a specific factory by ID
 router.get('/getOurRequestById/:id', verifyToken , checkUserRole('admin') , OurRequestService.getOurRequestById );
 
-// // Get factories by TypeOfFactoryId
-// // router.get('/getOurRequestByFactoryId/:factoryId', verifyToken , checkUserRole('admin') , OurRequestService.getOurRequestByFactoryId);
+// Get Our Request by FactoryId
+router.get(
+  "/getOurRequestByFactoryId/:factoryId",
+  verifyToken,
+  checkUserRole("admin"),
+  OurRequestService.getOurRequestByFactoryId
+);
 
 // Update a factory by ID
 router.put('/updateOurRequest/:id', verifyToken , checkUserRole('admin') , validateOurRequest , OurRequestService.updateOurRequest);

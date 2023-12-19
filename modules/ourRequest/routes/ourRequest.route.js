@@ -20,6 +20,14 @@ router.get('/getOurRequestById/:id', verifyToken , checkUserRole('admin') , OurR
 // Update a factory by ID
 router.put('/updateOurRequest/:id', verifyToken , checkUserRole('admin') , validateOurRequest , OurRequestService.updateOurRequest);
 
+router.put(
+  "/changeOrderStatus/:id",
+  verifyToken,
+  checkUserRole("admin"),
+  OurRequestService.changeOrderStatus
+);
+
+
 // Delete a factory by ID
 router.delete('/deleteOurRequest/:id',  verifyToken , checkUserRole('admin') , OurRequestService.deleteOurRequest);
 

@@ -2,6 +2,8 @@ const OurRequest = require("../model/ourRequest.model");
 const itemsFactoryModel = require("../../itemsFactory/model/itemsFactory.model");
 const convertArray = require("../../../core/shared/errorForm");
 const { validationResult } = require("express-validator");
+const orderStatusEnum = require("../../../core/enums/OrderStatus.enum");
+const stockModel = require("../../stock/model/stock.model");
 
 class calculate {
   constructor(unitsNumber, unitsCost) {
@@ -9,10 +11,9 @@ class calculate {
     this.unitsCost = unitsCost;
   }
 
-  totalCost(){
-    return this.unitsNumber * this.unitsCost
+  totalCost() {
+    return this.unitsNumber * this.unitsCost;
   }
-
 }
 // Create a new OurRequest
 exports.createOurRequest = async (req, res) => {
@@ -38,7 +39,10 @@ exports.createOurRequest = async (req, res) => {
       });
     }
 
-    body["totalcost"] = new calculate(body.unitsNumber , body.unitsCost).totalCost();
+    body["totalcost"] = new calculate(
+      body.unitsNumber,
+      body.unitsCost
+    ).totalCost();
 
     await OurRequest.create(body);
     return res.status(201).json({
@@ -138,8 +142,11 @@ exports.updateOurRequest = async (req, res) => {
       });
     }
 
-    req.body["totalcost"] = new calculate(req.body.unitsNumber , req.body.unitsCost).totalCost();
-    
+    req.body["totalcost"] = new calculate(
+      req.body.unitsNumber,
+      req.body.unitsCost
+    ).totalCost();
+
     const filter = { _id: req.body.id };
     const updateDocument = {
       $set: req.body,
@@ -150,6 +157,69 @@ exports.updateOurRequest = async (req, res) => {
       statusCode: res.statusCode,
       message: "update Our Request successfully",
     });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// Update change orderStatus
+exports.changeOrderStatus = async (req, res) => {
+  if (!req.params.id) {
+    return res.status(400).json({
+      statusCode: res.statusCode,
+      message: "ID Is Requierd",
+    });
+  }
+  try {
+    let objOurRequest = await OurRequest.findOne({
+      _id: req.params.id,
+    }).populate({
+      path: "itemFactoryId",
+      populate: {
+        path: "factoryId",
+        model: "Factory",
+        select: "name -_id",
+        populate: {
+          path: "typeOfFactoryId",
+          model: "typeOfFactory",
+          select: "type -_id",
+        },
+      },
+    });
+    if (!objOurRequest) {
+      return res.status(404).json({
+        message: "Our Request not found",
+        data: [],
+      });
+    }
+
+    const filter = { _id: req.params.id };
+    const updateDocument = {
+      $set: { orderStatus: req.body.orderStatus },
+    };
+
+    await OurRequest.updateOne(filter, updateDocument);
+
+    const stockRequest = {
+      ourRequestId: objOurRequest._id,
+      itemName: objOurRequest.itemFactoryId.name,
+      typeofFactory: objOurRequest.itemFactoryId.factoryId.typeOfFactoryId.type,
+      unitsNumber: objOurRequest.unitsNumber,
+      unitsCost: objOurRequest.unitsNumber,
+      totalcost: objOurRequest.totalcost,
+    };
+
+    // send to Stock if (orderStatus == RECIVED)
+    if (
+      objOurRequest.orderStatus !== orderStatusEnum.RECIVED &&
+      req.body.orderStatus == orderStatusEnum.RECIVED 
+    ) {
+      await stockModel.create(stockRequest);
+    }
+      res.status(201).json({
+        statusCode: res.statusCode,
+        message: "update Our Request successfully",
+      });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

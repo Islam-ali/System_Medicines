@@ -35,6 +35,11 @@ app.use('/itemsFactory', require('./modules/itemsFactory/routes/itemsFactory.rou
 app.use('/ourRequest', require('./modules/ourRequest/routes/ourRequest.route') );
 app.use('/paymentForFactory', require('./modules/PaymentForFactories/routes/paymentForFactories.route') );
 app.use('/factoryAccount', require('./modules/FactoryAccounts/routes/factoryAccount.route') );
+app.use(
+  "/stock",
+  require("./modules/stock/routes/stock.route")
+);
+
 
 
 // catch 404 and forward to error handler

@@ -58,22 +58,23 @@ exports.login = async (req, res) => {
   try {
     const user = await userModel.findOne({ username });
     if (!user) {
-      return res.status(401).json({ message: "Invalid username" });
+      return res.status(400).json({ message: "username is Wrong" });
     }
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
-      return res.status(401).json({ message: "Invalid password" });
+      return res.status(400).json({ message: "password is Wrong" });
     }
     // Create JWT token
+    const expiresInOneYear = 365 * 24 * 60 * 60;
     const token = jwt.sign({ userId: user._id , username: user.username , role: user.role }, env.JWT_SECRET , {
-      expiresIn: "1d",
+      expiresIn: expiresInOneYear,
     });
     res
       .status(200)
       .json({
         statusCode: res.statusCode,
-        message: "User login successfully",
-        token: token,
+        message: "Login successfully",
+        data: {token: token},
       });
   } catch (error) {
     res.status(500).json({ message: error.message });

@@ -209,12 +209,33 @@ exports.getPaymentForFactoryById = async (req, res) => {
 //     res.status(500).json({ message: error.message });
 //   }
 // };
-
+// exports.updateData = async (item , newObjourRequest , count) => {
+//   const filter = {_id:newObjourRequest._id}
+//   increaseWasPaid = new calculatePaymentFactory().IncreaseWasPaid(
+//     newObjourRequest.wasPaid,
+//     item.cashAmount
+//   );
+//   await ourRequest.updateOne(filter, {
+//     $set: { wasPaid: increaseWasPaid },
+//   });
+//   newObjourRequest = await ourRequest.findOne(filter);
+//   // calculate(balance)
+//   let newBalance = 0;
+//   newBalance = new calculatePaymentFactory().calculateBalance(
+//     newObjourRequest.totalcost,
+//     newObjourRequest.wasPaid
+//   );
+  
+//   await PaymentForFactory.updateOne({_id:item._id}, {
+//     $set: { balance: newBalance },
+//   });
+//   console.log(count);
+// }
 // Update a factory by ID
 exports.updatePaymentForFactory = async (req, res) => {
-  const errors = validationResult(req);
   let session = await mongoose.startSession();
   session.startTransaction();
+  const errors = validationResult(req);
   if (!req.params.id) {
     return res.status(400).json({
       statusCode: res.statusCode,
@@ -230,7 +251,10 @@ exports.updatePaymentForFactory = async (req, res) => {
     });
   }
   try {
+
     const filterPaymentForFactoryId = { _id: req.params.id };
+    const { ourRequestId, cashAmount } = req.body;
+
     const objPaymentForFactory = await PaymentForFactory.findOne(
       filterPaymentForFactoryId
     ).populate("ourRequestId");
@@ -240,7 +264,6 @@ exports.updatePaymentForFactory = async (req, res) => {
         message: "Not Found Item",
       });
     }
-    const { ourRequestId, cashAmount } = req.body;
     const oldObjOurRequest = await ourRequest.findOne({
       _id: ourRequestId,
     });
@@ -250,79 +273,69 @@ exports.updatePaymentForFactory = async (req, res) => {
         message: "not exist Request",
       });
     }
+    const oldBalance = new calculatePaymentFactory().calculateBalance(
+      oldObjOurRequest.totalcost,
+      oldObjOurRequest.wasPaid - objPaymentForFactory.cashAmount
+    );
+    if (cashAmount > oldBalance) {
+      return res.status(400).json({
+        statusCode: res.statusCode,
+        message: "cach Amount More than Balance",
+      });
+    }
 
-    // // claculate was paid
-    // let decreaseWasPaid = 0;
-    // decreaseWasPaid = new calculatePaymentFactory().DecreaseWasPaid(
-    //   objPaymentForFactory.ourRequestId.wasPaid,
-    //   objPaymentForFactory.cashAmount
-    // );
-
-    // update Our Request
-    // const filterOurRequest = { _id: objPaymentForFactory.ourRequestId._id };
-    // const updateDocumentOurRequest = {
-    //   $set: { wasPaid: decreaseWasPaid },
-    // };
-    // await ourRequest.updateOne(filterOurRequest, updateDocumentOurRequest);
+    // update Payment For Factory
+    await PaymentForFactory.updateOne(filterPaymentForFactoryId, {
+      $set: req.body,
+    });
 
     // Deleted Account Log
     await FactoryAccountLogModel.deleteOne({
       paymentForFactoryId: req.params.id,
     });
 
-    // increse all balance (add cach Amount)
-    // await FactoryAccountLogModel.updateMany(
-    //   { ourRequestId: objPaymentForFactory.ourRequestId._id },
-    //   {
-    //     $inc: { balance: objPaymentForFactory.cashAmount },
-    //   }
-    // );
-
-    // Increase (wasPaid)
-    // let increaseWasPaid = 0;
-    // increaseWasPaid = new calculatePaymentFactory().IncreaseWasPaid(
-    //   decreaseWasPaid,
-    //   cashAmount
-    // );
-
-    // update Our Request
     const filter = { _id: ourRequestId };
-    const updateDocument = {
-      $set: { wasPaid: 0 },
-    };
+    const updateDocument = {$set: { wasPaid: 0 }};
     let newObjourRequest = {};
-    newObjourRequest = await ourRequest.findOneAndUpdate(
-      filter,
-      updateDocument
-    );
     let increaseWasPaid = 0;
-    // let newWasPaid = 0;
+    
+    
+    // update Our Request all Waspaid = 0
+    await ourRequest.updateMany(filter, updateDocument);
+    newObjourRequest = await ourRequest.findOne({
+      _id: ourRequestId,
+    });
+
+
     const listOfPaymentForFactories = await PaymentForFactory.find({
       ourRequestId: objPaymentForFactory.ourRequestId._id,
     });
-
-    listOfPaymentForFactories.forEach(async (item) => {
+    for (const item of listOfPaymentForFactories) {
       increaseWasPaid = new calculatePaymentFactory().IncreaseWasPaid(
         newObjourRequest.wasPaid,
         item.cashAmount
       );
-      newObjourRequest = await ourRequest.findOneAndUpdate(filter, {
+      await ourRequest.updateOne(filter, {
         $set: { wasPaid: increaseWasPaid },
       });
+      newObjourRequest = await ourRequest.findOne(filter);
       // calculate(balance)
       let newBalance = 0;
       newBalance = new calculatePaymentFactory().calculateBalance(
-        item.totalcost,
+        newObjourRequest.totalcost,
         newObjourRequest.wasPaid
       );
-
-      await PaymentForFactory.findOneAndUpdate(item._id, {
+      
+      await PaymentForFactory.updateOne({_id:item._id}, {
         $set: { balance: newBalance },
       });
-    });
+    }
+    // listOfPaymentForFactories.forEach(async (item) => {
+    //   count++
 
-    return res.json({ newObjourRequest });
-    newObjourRequest = await ourRequest.find({});
+    // });
+
+    newObjourRequest = await ourRequest.findOne(filter);
 
     // calculate(balance)
     let balance = 0;
@@ -331,12 +344,7 @@ exports.updatePaymentForFactory = async (req, res) => {
       newObjourRequest.wasPaid
     );
 
-    if (cashAmount > balance) {
-      return res.status(400).json({
-        statusCode: res.statusCode,
-        message: "cach Amount More than Balance",
-      });
-    }
+
     // create Factory Account Log
     const logData = {
       ...req.body,

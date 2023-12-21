@@ -5,7 +5,11 @@ class calculatePaymentFctory {
   }
 
   DecreaseWasPaid(wasPaid , cashAmount){
-    return wasPaid - cashAmount
+    if(wasPaid > cashAmount){
+      return wasPaid - cashAmount
+    }else{
+      return cashAmount - wasPaid 
+    }
   }
 
   calculateBalance(totalCost , wasPaid){

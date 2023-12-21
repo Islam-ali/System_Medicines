@@ -64,6 +64,7 @@ exports.login = async (req, res) => {
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
       objError = {password:["password is Wrong"]};
+      return res.status(400).json({ message: "faild", errors: objError });
     }
     // Create JWT token
     const expiresInOneYear = 365 * 24 * 60 * 60;

@@ -290,39 +290,48 @@ exports.updatePaymentForFactory = async (req, res) => {
     const updateDocument = {
       $set: { wasPaid: 0 },
     };
-    await ourRequest.updateOne(filter, updateDocument);
-    let newObjourRequest = {} ;
+    let newObjourRequest = {};
+    newObjourRequest = await ourRequest.findOneAndUpdate(
+      filter,
+      updateDocument
+    );
     let increaseWasPaid = 0;
-    const PaymentForFactories = await PaymentForFactory.find({
+    // let newWasPaid = 0;
+    const listOfPaymentForFactories = await PaymentForFactory.find({
       ourRequestId: objPaymentForFactory.ourRequestId._id,
     });
-    PaymentForFactories.forEach(async (item) => {
+
+    listOfPaymentForFactories.forEach(async (item) => {
       increaseWasPaid = new calculatePaymentFactory().IncreaseWasPaid(
-        newObjourRequest?.wasPaid | 0,
+        newObjourRequest.wasPaid,
         item.cashAmount
       );
-      newObjourRequest = await ourRequest.findByIdAndUpdate(filter, {
+      newObjourRequest = await ourRequest.findOneAndUpdate(filter, {
         $set: { wasPaid: increaseWasPaid },
       });
-      await PaymentForFactory.findByIdAndUpdate(
-        { _id: item._id },
-        {
-          $set: {
-            balance:
-              objPaymentForFactory.ourRequestId.totalcost - item.cashAmount,
-          },
-        }
+      // calculate(balance)
+      let newBalance = 0;
+      newBalance = new calculatePaymentFactory().calculateBalance(
+        item.totalcost,
+        newObjourRequest.wasPaid
       );
+
+      await PaymentForFactory.findOneAndUpdate(item._id, {
+        $set: { balance: newBalance },
+      });
     });
-    newObjourRequest = await ourRequest.findById(filter);
+
+    return res.json({ newObjourRequest });
+    newObjourRequest = await ourRequest.find({});
+
     // calculate(balance)
-    let newBalance = 0;
-    newBalance = new calculatePaymentFactory().calculateBalance(
+    let balance = 0;
+    balance = new calculatePaymentFactory().calculateBalance(
       newObjourRequest.totalcost,
       newObjourRequest.wasPaid
     );
 
-    if (cashAmount > newBalance) {
+    if (cashAmount > balance) {
       return res.status(400).json({
         statusCode: res.statusCode,
         message: "cach Amount More than Balance",
@@ -331,7 +340,7 @@ exports.updatePaymentForFactory = async (req, res) => {
     // create Factory Account Log
     const logData = {
       ...req.body,
-      balance: newBalance,
+      balance: balance,
       paymentForFactoryId: req.params.id,
     };
     await FactoryAccountLogModel.create(logData);

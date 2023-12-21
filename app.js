@@ -40,7 +40,7 @@ app.use(
   require("./modules/stock/routes/stock.route")
 );
 
-
+app.use("/map" , require("./modules/map/routes/map.route"))
 
 // catch 404 and forward to error handler
 app.use(function (req, res, next) {

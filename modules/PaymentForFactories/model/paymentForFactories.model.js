@@ -8,6 +8,7 @@ const paymentForFactorySchema = new mongoose.Schema({
   wayOfPaymentId:{type: Number , required:true},
   cashAmount: { type: Number, required: true },
   cashDate: { type: Date , required: true },
+  balance: { type: Number, required: true, default: 0 },
   note: { type: String },
 });
 

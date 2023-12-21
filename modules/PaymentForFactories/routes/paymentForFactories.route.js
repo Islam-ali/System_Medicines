@@ -11,6 +11,9 @@ router.post('/createPaymentForFactory', verifyToken , checkUserRole('admin') , v
 // Get all factories
 router.get('/getAllPaymentForFactories', verifyToken , checkUserRole('admin') ,PaymentForFactoryService.getAllPaymentForFactories);
 
+// get All Payment For Our Request
+router.get('/getAllPaymentForOurRequest', verifyToken , checkUserRole('admin') ,PaymentForFactoryService.getAllPaymentForOurRequest);
+
 // Get a specific factory by ID
 router.get('/getPaymentForFactoryById/:id', verifyToken , checkUserRole('admin') , PaymentForFactoryService.getPaymentForFactoryById );
 

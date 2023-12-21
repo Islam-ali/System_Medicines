@@ -69,12 +69,13 @@ exports.createPaymentForFactory = async (req, res) => {
     );
 
     // create PaymentForFactory
+    body["balance"] = balance;
     const newPaymentForFactory = await PaymentForFactory.create(body);
     if (newPaymentForFactory) {
       newPaymentForFactoryId = newPaymentForFactory._id;
     }
     // create Factory Account Log
-    body["balance"] = balance;
+    // body["balance"] = balance;
     body["paymentForFactoryId"] = newPaymentForFactoryId;
     await FactoryAccountLogModel.create(body);
 
@@ -92,7 +93,7 @@ exports.createPaymentForFactory = async (req, res) => {
   }
 };
 
-// Get all factories
+// get All Payment For Factories
 exports.getAllPaymentForFactories = async (req, res) => {
   try {
     const PaymentForFactories = await PaymentForFactory.find({}).populate({
@@ -108,6 +109,58 @@ exports.getAllPaymentForFactories = async (req, res) => {
         },
       },
     });
+
+    res.status(200).json({
+      statusCode: res.statusCode,
+      message: "successfully",
+      data: PaymentForFactories,
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// get All Payment For OurRequest
+exports.getAllPaymentForOurRequest = async (req, res) => {
+  try {
+    const PaymentForFactories = await PaymentForFactory.find({}).populate({
+      path: "ourRequestId",
+      populate: {
+        path: "itemFactoryId",
+        model: "ItemsFactory",
+        select: "name -_id",
+        populate: {
+          path: "factoryId",
+          model: "Factory",
+          select: "name -_id",
+        },
+      },
+    });
+
+    const listOfUniqueOurRequests = PaymentForFactories.reduce(
+      (uniqueItems, payment) => {
+        const found = uniqueItems.find(
+          (item) => item._id === payment.ourRequestId._id
+        );
+        if (!found) {
+          uniqueItems.push({
+            ourRequest: payment.ourRequestId,
+            listOfPayments: [],
+          });
+        }
+        return uniqueItems;
+      },
+      []
+    );
+
+    listOfUniqueOurRequests.forEach((ele, index) => {
+      const filter = PaymentForFactories.filter(
+        (item) => item.ourRequestId._id == ele.ourRequest._id
+      );
+      listOfUniqueOurRequests[index].listOfPayments = filter;
+    });
+
+    return res.json({ listOfUniqueOurRequests });
 
     res.status(200).json({
       statusCode: res.statusCode,
@@ -198,69 +251,83 @@ exports.updatePaymentForFactory = async (req, res) => {
       });
     }
 
-    // claculate was paid
-    let decreaseWasPaid = 0;
-    decreaseWasPaid = new calculatePaymentFactory().DecreaseWasPaid(
-      objPaymentForFactory.ourRequestId.wasPaid,
-      objPaymentForFactory.cashAmount
-    );
+    // // claculate was paid
+    // let decreaseWasPaid = 0;
+    // decreaseWasPaid = new calculatePaymentFactory().DecreaseWasPaid(
+    //   objPaymentForFactory.ourRequestId.wasPaid,
+    //   objPaymentForFactory.cashAmount
+    // );
 
     // update Our Request
-    const filterOurRequest = { _id: objPaymentForFactory.ourRequestId._id };
-    const updateDocumentOurRequest = {
-      $set: { wasPaid: decreaseWasPaid },
-    };
-    await ourRequest.updateOne(filterOurRequest, updateDocumentOurRequest);
-    
+    // const filterOurRequest = { _id: objPaymentForFactory.ourRequestId._id };
+    // const updateDocumentOurRequest = {
+    //   $set: { wasPaid: decreaseWasPaid },
+    // };
+    // await ourRequest.updateOne(filterOurRequest, updateDocumentOurRequest);
 
     // Deleted Account Log
     await FactoryAccountLogModel.deleteOne({
-      paymentForFactoryId:  req.params.id,
+      paymentForFactoryId: req.params.id,
     });
 
     // increse all balance (add cach Amount)
-    await FactoryAccountLogModel.updateMany(
-      { ourRequestId: objPaymentForFactory.ourRequestId._id },
-      {
-        $inc: { balance: objPaymentForFactory.cashAmount },
-      }
-    );
+    // await FactoryAccountLogModel.updateMany(
+    //   { ourRequestId: objPaymentForFactory.ourRequestId._id },
+    //   {
+    //     $inc: { balance: objPaymentForFactory.cashAmount },
+    //   }
+    // );
 
     // Increase (wasPaid)
-    let increaseWasPaid = 0;
-    increaseWasPaid = new calculatePaymentFactory().IncreaseWasPaid(
-      decreaseWasPaid,
-      cashAmount
-    );
+    // let increaseWasPaid = 0;
+    // increaseWasPaid = new calculatePaymentFactory().IncreaseWasPaid(
+    //   decreaseWasPaid,
+    //   cashAmount
+    // );
 
     // update Our Request
     const filter = { _id: ourRequestId };
     const updateDocument = {
-      $set: { wasPaid: increaseWasPaid },
+      $set: { wasPaid: 0 },
     };
     await ourRequest.updateOne(filter, updateDocument);
-
-    // calculate (balance)
+    let newObjourRequest = {} ;
+    let increaseWasPaid = 0;
+    const PaymentForFactories = await PaymentForFactory.find({
+      ourRequestId: objPaymentForFactory.ourRequestId._id,
+    });
+    PaymentForFactories.forEach(async (item) => {
+      increaseWasPaid = new calculatePaymentFactory().IncreaseWasPaid(
+        newObjourRequest?.wasPaid | 0,
+        item.cashAmount
+      );
+      newObjourRequest = await ourRequest.findByIdAndUpdate(filter, {
+        $set: { wasPaid: increaseWasPaid },
+      });
+      await PaymentForFactory.findByIdAndUpdate(
+        { _id: item._id },
+        {
+          $set: {
+            balance:
+              objPaymentForFactory.ourRequestId.totalcost - item.cashAmount,
+          },
+        }
+      );
+    });
+    newObjourRequest = await ourRequest.findById(filter);
+    // calculate(balance)
     let newBalance = 0;
     newBalance = new calculatePaymentFactory().calculateBalance(
-      oldObjOurRequest.totalcost,
-      increaseWasPaid
+      newObjourRequest.totalcost,
+      newObjourRequest.wasPaid
     );
+
     if (cashAmount > newBalance) {
       return res.status(400).json({
         statusCode: res.statusCode,
         message: "cach Amount More than Balance",
       });
     }
-    // Update Payment For Factory
-
-    await PaymentForFactory.updateOne(
-      filterPaymentForFactoryId,
-      {
-        $set: req.body,
-      }
-    );
-
     // create Factory Account Log
     const logData = {
       ...req.body,
@@ -317,6 +384,14 @@ exports.deletePaymentForFactory = async (req, res) => {
     await FactoryAccountLogModel.deleteOne({
       paymentForFactoryId: filterPaymentForFactoryId,
     });
+
+    // increse all balance (add cach Amount)
+    await PaymentForFactory.updateMany(
+      { ourRequestId: objPaymentForFactory.ourRequestId._id },
+      {
+        $inc: { balance: objPaymentForFactory.cashAmount },
+      }
+    );
 
     // increse all balance (add cach Amount)
     await FactoryAccountLogModel.updateMany(

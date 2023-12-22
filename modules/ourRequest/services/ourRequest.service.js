@@ -91,22 +91,54 @@ exports.getOurRequestById = async (req, res) => {
 // Get Our Request by factoryId
 exports.getOurRequestByFactoryId = async (req, res) => {
   try {
-    const objFactory = await OurRequest.findOne({
-      factoryId: req.params.factoryId,
+    const listOfOurRequests = await OurRequest.find({}).populate({
+      path: "itemFactoryId",
+      populate: {
+        path: "factoryId",
+        model: "Factory",
+        select: "name",
+      },
     });
-    if (!objFactory) {
-      return res.status(404).json({ message: "Item not found", data: null });
+
+    const ListOfOurRequestByFactoryId = listOfOurRequests.filter(item => item.itemFactoryId.factoryId._id == req.params.factoryId)
+    if (ListOfOurRequestByFactoryId.length == 0) {
+      return res.status(404).json({ message: "Our Requests not found", data: [] });
     }
     res.status(200).json({
       statusCode: res.statusCode,
       message: "successfully",
-      data: objFactory,
+      data: ListOfOurRequestByFactoryId,
     });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
 
+// Get Our Request by factoryId
+exports.getOueRequestByItemsFactoryId = async (req, res) => {
+  try {
+    const listOfOurRequests = await OurRequest.find({
+      itemFactoryId: req.params.itemsFactoryId,
+    }).populate({
+      path: "itemFactoryId",
+      populate: {
+        path: "factoryId",
+        model: "Factory",
+        select: "name",
+      },
+    });
+    if (!listOfOurRequests) {
+      return res.status(404).json({ message: "Our Requests not found", data: [] });
+    }
+    res.status(200).json({
+      statusCode: res.statusCode,
+      message: "successfully",
+      data: listOfOurRequests,
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
 // Update a factory by ID
 exports.updateOurRequest = async (req, res) => {
   const errors = validationResult(req);

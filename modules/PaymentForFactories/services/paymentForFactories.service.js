@@ -209,28 +209,7 @@ exports.getPaymentForFactoryById = async (req, res) => {
 //     res.status(500).json({ message: error.message });
 //   }
 // };
-// exports.updateData = async (item , newObjourRequest , count) => {
-//   const filter = {_id:newObjourRequest._id}
-//   increaseWasPaid = new calculatePaymentFactory().IncreaseWasPaid(
-//     newObjourRequest.wasPaid,
-//     item.cashAmount
-//   );
-//   await ourRequest.updateOne(filter, {
-//     $set: { wasPaid: increaseWasPaid },
-//   });
-//   newObjourRequest = await ourRequest.findOne(filter);
-//   // calculate(balance)
-//   let newBalance = 0;
-//   newBalance = new calculatePaymentFactory().calculateBalance(
-//     newObjourRequest.totalcost,
-//     newObjourRequest.wasPaid
-//   );
-  
-//   await PaymentForFactory.updateOne({_id:item._id}, {
-//     $set: { balance: newBalance },
-//   });
-//   console.log(count);
-// }
+
 // Update a factory by ID
 exports.updatePaymentForFactory = async (req, res) => {
   let session = await mongoose.startSession();
@@ -330,10 +309,6 @@ exports.updatePaymentForFactory = async (req, res) => {
         $set: { balance: newBalance },
       });
     }
-    // listOfPaymentForFactories.forEach(async (item) => {
-    //   count++
-
-    // });
 
     newObjourRequest = await ourRequest.findOne(filter);
 

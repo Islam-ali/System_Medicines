@@ -76,14 +76,30 @@ exports.getFactoryById = async (req, res) => {
 
 // Get factories by TypeOfFactoryId
 exports.getFactoriesByTypeOfFactoryId = async (req, res) => {
+  const existingType = await typeOfFactoryModel.findOne({
+    _id: req.params.typeOfFactoryId,
+  });
+  if (!existingType) {
+    return res.status(400).json({
+      statusCode: res.statusCode,
+      message: "not exist type of factory",
+    });
+  }
   try {
     const factories = await FactoryModel.find({
       typeOfFactoryId: req.params.typeOfFactoryId,
     });
+    const objTypeOfFactory = await typeOfFactoryModel.findOne({
+      _id: req.params.typeOfFactoryId,
+    });
+    const objmapResponse = {
+      typeOfFactoryName: objTypeOfFactory.type,
+      listOfFactories:factories
+    }
     res.status(200).json({
       statusCode: res.statusCode,
       message: "successfully",
-      data: factories,
+      data: objmapResponse,
     });
   } catch (error) {
     res.status(500).json({ message: error.message });

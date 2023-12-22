@@ -22,6 +22,14 @@ router.get(
   OurRequestService.getOurRequestByFactoryId
 );
 
+// Get Our Request by itemsFactoryId
+router.get(
+  "/getOueRequestByItemsFactoryId/:itemsFactoryId",
+  verifyToken,
+  checkUserRole("admin"),
+  OurRequestService.getOueRequestByItemsFactoryId
+);
+
 // Update a factory by ID
 router.put('/updateOurRequest/:id', verifyToken , checkUserRole('admin') , validateOurRequest , OurRequestService.updateOurRequest);
 

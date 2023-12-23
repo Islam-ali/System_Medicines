@@ -55,6 +55,8 @@ exports.createOurRequest = async (req, res) => {
         for (const material of body.listOfMaterials) {
         stock = await stockModel.findOne({itemFactoryId:material.itemFactoryId});
         let newUnitsNumber = stock.unitsNumber - material.unitsNumber
+
+        // cont ............
         return res.json({newUnitsNumber})
         }
       }else{

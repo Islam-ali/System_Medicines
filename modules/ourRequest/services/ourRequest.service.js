@@ -4,7 +4,8 @@ const convertArray = require("../../../core/shared/errorForm");
 const { validationResult } = require("express-validator");
 const orderStatusEnum = require("../../../core/enums/OrderStatus.enum");
 const stockModel = require("../../stock/model/stock.model");
-
+const PaymentForFactoryModel = require("../../PaymentForFactories/model/paymentForFactories.model");
+const FactoryModel = require("../../factory/model/factory.model")
 class calculate {
   constructor(unitsNumber, unitsCost) {
     this.unitsNumber = unitsNumber;
@@ -28,6 +29,7 @@ exports.createOurRequest = async (req, res) => {
     });
   }
   try {
+    
     // return res.json(body);
     const objItemFactory = await itemsFactoryModel.findOne({
       _id: body.itemFactoryId,
@@ -38,12 +40,31 @@ exports.createOurRequest = async (req, res) => {
         message: "not exist item Factory",
       });
     }
-
+    body["factoryId"] = objItemFactory.factoryId;
     body["totalcost"] = new calculate(
       body.unitsNumber,
       body.unitsCost
     ).totalCost();
 
+    const objFactory = await FactoryModel.findOne({_id:objItemFactory.factoryId}).populate('typeOfFactoryId')
+    
+    const classificationId = objFactory.typeOfFactoryId.classificationId
+    let stock = {};
+    if(classificationId == 2 ){
+      if(body.listOfMaterials.length > 0){
+        for (const material of body.listOfMaterials) {
+        stock = await stockModel.findOne({itemFactoryId:material.itemFactoryId});
+        let newUnitsNumber = stock.unitsNumber - material.unitsNumber
+        return res.json({newUnitsNumber})
+        }
+      }else{
+        return res.status(400).json({
+          statusCode: res.statusCode,
+          message: "must be Add row Materials",
+        });
+      }
+    }
+    
     await OurRequest.create(body);
     return res.status(201).json({
       statusCode: res.statusCode,
@@ -68,7 +89,32 @@ exports.getAllOurRequests = async (req, res) => {
   }
 };
 
-
+const processRequests = async (listOfOurRequests , res) => {
+  let mapResponse = [];
+  try {
+    for (let i = 0; i < listOfOurRequests.length; i++) {
+      const PaymentForFactories = await PaymentForFactoryModel.find({
+        ourRequestId: listOfOurRequests[i]._id,
+      }).populate({
+        path: "ourRequestId",
+      });
+      listOfOurRequests[i]['listOfPayments'] = PaymentForFactories;
+      let obj = {
+        ...listOfOurRequests[i]._doc,
+        listOfPayments : PaymentForFactories
+      }
+      mapResponse.push(obj)
+    }
+  
+    res.status(200).json({
+      statusCode: res.statusCode,
+      message: "Successfully fetched data",
+      data: mapResponse,
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
 // Get Our Request by ID
 exports.getOurRequestById = async (req, res) => {
   try {
@@ -91,24 +137,28 @@ exports.getOurRequestById = async (req, res) => {
 // Get Our Request by factoryId
 exports.getOurRequestByFactoryId = async (req, res) => {
   try {
-    const listOfOurRequests = await OurRequest.find({}).populate({
-      path: "itemFactoryId",
-      populate: {
+    let listOfOurRequests = await OurRequest.find({
+      factoryId: req.params.factoryId,
+    })
+      .populate({
+        path: "itemFactoryId",
+        model: "ItemsFactory",
+        select: "name",
+      })
+      .populate({
         path: "factoryId",
         model: "Factory",
         select: "name",
-      },
-    });
+      });
 
-    const ListOfOurRequestByFactoryId = listOfOurRequests.filter(item => item.itemFactoryId.factoryId._id == req.params.factoryId)
-    if (ListOfOurRequestByFactoryId.length == 0) {
-      return res.status(404).json({ message: "Our Requests not found", data: [] });
+    if (listOfOurRequests.length == 0) {
+      return res
+        .status(404)
+        .json({ message: "Our Requests not found", data: [] });
     }
-    res.status(200).json({
-      statusCode: res.statusCode,
-      message: "successfully",
-      data: ListOfOurRequestByFactoryId,
-    });
+
+    processRequests(listOfOurRequests , res);
+
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -128,7 +178,9 @@ exports.getOueRequestByItemsFactoryId = async (req, res) => {
       },
     });
     if (!listOfOurRequests) {
-      return res.status(404).json({ message: "Our Requests not found", data: [] });
+      return res
+        .status(404)
+        .json({ message: "Our Requests not found", data: [] });
     }
     res.status(200).json({
       statusCode: res.statusCode,
@@ -237,23 +289,24 @@ exports.changeOrderStatus = async (req, res) => {
     const stockRequest = {
       ourRequestId: objOurRequest._id,
       itemName: objOurRequest.itemFactoryId.name,
+      itemFactoryId: objOurRequest.itemFactoryId._id,
       typeofFactory: objOurRequest.itemFactoryId.factoryId.typeOfFactoryId.type,
       unitsNumber: objOurRequest.unitsNumber,
-      unitsCost: objOurRequest.unitsNumber,
+      unitsCost: objOurRequest.unitsCost,
       totalcost: objOurRequest.totalcost,
     };
 
     // send to Stock if (orderStatus == RECIVED)
     if (
       objOurRequest.orderStatus !== orderStatusEnum.RECIVED &&
-      req.body.orderStatus == orderStatusEnum.RECIVED 
+      req.body.orderStatus == orderStatusEnum.RECIVED
     ) {
       await stockModel.create(stockRequest);
     }
-      res.status(201).json({
-        statusCode: res.statusCode,
-        message: "update Our Request successfully",
-      });
+    res.status(201).json({
+      statusCode: res.statusCode,
+      message: "update Our Request successfully",
+    });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

@@ -5,6 +5,11 @@ const stockSchema = new mongoose.Schema({
     ref: "OurRequest",
     required: true,
   },
+  itemFactoryId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "ItemsFactory",
+    required: true,
+  },
   itemName: { type: String, required: true },
   typeofFactory: { type: String, required: true },
   unitsNumber: { type: Number, required: true },

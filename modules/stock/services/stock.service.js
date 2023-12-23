@@ -3,7 +3,9 @@ const stockModel = require("../model/stock.model");
 // Get Factory Stock
 exports.getStock = async (req, res) => {
   try {
-    const listOfStock = await stockModel.find({}).populate({
+    const listOfStock = await stockModel.find({
+      classificationId: req.params.classificationId
+    }).populate({
       path: "ourRequestId",
       populate: {
         path: "itemFactoryId",

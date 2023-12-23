@@ -5,7 +5,7 @@ const {verifyToken,checkUserRole} = require('../../../middelware/auth.middleware
 
 // Get all factories
 router.get(
-  "/getStock",
+  "/getStock/:classificationId",
   verifyToken,
   checkUserRole("admin"),
   stockService.getStock

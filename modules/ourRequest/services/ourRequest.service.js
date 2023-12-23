@@ -5,15 +5,16 @@ const { validationResult } = require("express-validator");
 const orderStatusEnum = require("../../../core/enums/OrderStatus.enum");
 const stockModel = require("../../stock/model/stock.model");
 const PaymentForFactoryModel = require("../../PaymentForFactories/model/paymentForFactories.model");
-const FactoryModel = require("../../factory/model/factory.model")
+const FactoryModel = require("../../factory/model/factory.model");
 class calculate {
-  constructor(unitsNumber, unitsCost) {
-    this.unitsNumber = unitsNumber;
-    this.unitsCost = unitsCost;
+  constructor() {}
+
+  totalCost(unitsNumber, unitsCost) {
+    return unitsNumber * unitsCost;
   }
 
-  totalCost() {
-    return this.unitsNumber * this.unitsCost;
+  checkNumber(number) {
+    return number > 0 ? 1 : number < 0 ? -1 : 0;
   }
 }
 // Create a new OurRequest
@@ -29,7 +30,6 @@ exports.createOurRequest = async (req, res) => {
     });
   }
   try {
-    
     // return res.json(body);
     const objItemFactory = await itemsFactoryModel.findOne({
       _id: body.itemFactoryId,
@@ -41,32 +41,54 @@ exports.createOurRequest = async (req, res) => {
       });
     }
     body["factoryId"] = objItemFactory.factoryId;
-    body["totalcost"] = new calculate(
+    body["totalcost"] = new calculate().totalCost(
       body.unitsNumber,
       body.unitsCost
-    ).totalCost();
+    );
 
-    const objFactory = await FactoryModel.findOne({_id:objItemFactory.factoryId}).populate('typeOfFactoryId')
-    
-    const classificationId = objFactory.typeOfFactoryId.classificationId
+    const objFactory = await FactoryModel.findOne({
+      _id: objItemFactory.factoryId,
+    }).populate("typeOfFactoryId");
+
+    const classificationId = objFactory.typeOfFactoryId.classificationId;
     let stock = {};
-    if(classificationId == 2 ){
-      if(body.listOfMaterials.length > 0){
+    if (classificationId == 2) {
+      if (body.listOfMaterials.length > 0) {
         for (const material of body.listOfMaterials) {
-        stock = await stockModel.findOne({itemFactoryId:material.itemFactoryId});
-        let newUnitsNumber = stock.unitsNumber - material.unitsNumber
-
-        // cont ............
-        return res.json({newUnitsNumber})
+          stock = await stockModel.findOne({
+            itemFactoryId: material.itemFactoryId,
+          });
+          if(!stock){
+            return res.status(400).json({
+              statusCode: res.statusCode,
+              message: `The required item is not available in stock`,
+            });
+          }
+          const newUnitsNumber = stock.unitsNumber - material.unitsNumber;
+          const checkNumber = new calculate().checkNumber(newUnitsNumber);
+          if (checkNumber == -1) {
+            return res.status(400).json({
+              statusCode: res.statusCode,
+              message: `The required number of units in the ${stock.itemName} is not available in stock`,
+            });
+          }else{
+            const  newTotalCost = new calculate().totalCost(
+              newUnitsNumber,
+              stock.unitsCost
+            );
+            await stockModel.updateOne(
+              {itemFactoryId: material.itemFactoryId},
+              {$set:{unitsNumber : newUnitsNumber,totalcost: newTotalCost}}
+              )
+          }
         }
-      }else{
+      } else {
         return res.status(400).json({
           statusCode: res.statusCode,
           message: "must be Add row Materials",
         });
       }
     }
-    
     await OurRequest.create(body);
     return res.status(201).json({
       statusCode: res.statusCode,
@@ -91,7 +113,7 @@ exports.getAllOurRequests = async (req, res) => {
   }
 };
 
-const processRequests = async (listOfOurRequests , res) => {
+const processRequests = async (listOfOurRequests, res) => {
   let mapResponse = [];
   try {
     for (let i = 0; i < listOfOurRequests.length; i++) {
@@ -100,14 +122,14 @@ const processRequests = async (listOfOurRequests , res) => {
       }).populate({
         path: "ourRequestId",
       });
-      listOfOurRequests[i]['listOfPayments'] = PaymentForFactories;
+      listOfOurRequests[i]["listOfPayments"] = PaymentForFactories;
       let obj = {
         ...listOfOurRequests[i]._doc,
-        listOfPayments : PaymentForFactories
-      }
-      mapResponse.push(obj)
+        listOfPayments: PaymentForFactories,
+      };
+      mapResponse.push(obj);
     }
-  
+
     res.status(200).json({
       statusCode: res.statusCode,
       message: "Successfully fetched data",
@@ -159,8 +181,7 @@ exports.getOurRequestByFactoryId = async (req, res) => {
         .json({ message: "Our Requests not found", data: [] });
     }
 
-    processRequests(listOfOurRequests , res);
-
+    processRequests(listOfOurRequests, res);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -230,10 +251,65 @@ exports.updateOurRequest = async (req, res) => {
       });
     }
 
-    req.body["totalcost"] = new calculate(
+    req.body["totalcost"] = new calculate().totalCost(
       req.body.unitsNumber,
       req.body.unitsCost
-    ).totalCost();
+    );
+
+
+    const objFactory = await FactoryModel.findOne({
+      _id: objItemFactory.factoryId,
+    }).populate("typeOfFactoryId");
+
+    const classificationId = objFactory.typeOfFactoryId.classificationId;
+    let stock = {};
+    if (classificationId == 2) {
+      if (body.listOfMaterials.length > 0) {
+        // old stock
+        for (const material of objOurRequest.listOfMaterials) {
+          stock = await stockModel.findOne({
+            itemFactoryId: material.itemFactoryId,
+          });
+          const newUnitsNumber = stock.unitsNumber + material.unitsNumber;
+            const  newTotalCost = new calculate().totalCost(
+              newUnitsNumber,
+              stock.unitsCost
+            );
+            await stockModel.updateOne(
+              {itemFactoryId: material.itemFactoryId},
+              {$set:{unitsNumber : newUnitsNumber,totalcost: newTotalCost}}
+              )
+        }
+        // new stock
+        for (const material of body.listOfMaterials) {
+          stock = await stockModel.findOne({
+            itemFactoryId: material.itemFactoryId,
+          });
+          const newUnitsNumber = stock.unitsNumber - material.unitsNumber;
+          const checkNumber = new calculate().checkNumber(newUnitsNumber);
+          if (checkNumber == -1) {
+            return res.status(400).json({
+              statusCode: res.statusCode,
+              message: `The required number of units in the ${stock.itemName} is not available in stock`,
+            });
+          }else{
+            const  newTotalCost = new calculate().totalCost(
+              newUnitsNumber,
+              stock.unitsCost
+            );
+            await stockModel.updateOne(
+              {itemFactoryId: material.itemFactoryId},
+              {$set:{unitsNumber : newUnitsNumber,totalcost: newTotalCost}}
+              )
+          }
+        }
+      } else {
+        return res.status(400).json({
+          statusCode: res.statusCode,
+          message: "must be Add row Materials",
+        });
+      }
+    }
 
     const filter = { _id: req.body.id };
     const updateDocument = {
@@ -270,7 +346,6 @@ exports.changeOrderStatus = async (req, res) => {
         populate: {
           path: "typeOfFactoryId",
           model: "typeOfFactory",
-          select: "type -_id",
         },
       },
     });
@@ -280,15 +355,22 @@ exports.changeOrderStatus = async (req, res) => {
         data: [],
       });
     }
-
+    
     const filter = { _id: req.params.id };
     const updateDocument = {
       $set: { orderStatus: req.body.orderStatus },
     };
 
     await OurRequest.updateOne(filter, updateDocument);
-
+    
+    // const objFactory = await FactoryModel.findOne({
+    //   _id: objItemFactory.factoryId,
+    // }).populate("typeOfFactoryId");
+    
+    const classificationId = objOurRequest.itemFactoryId.factoryId.typeOfFactoryId.classificationId;
+    
     const stockRequest = {
+      classificationId: classificationId,
       ourRequestId: objOurRequest._id,
       itemName: objOurRequest.itemFactoryId.name,
       itemFactoryId: objOurRequest.itemFactoryId._id,
@@ -299,9 +381,10 @@ exports.changeOrderStatus = async (req, res) => {
     };
 
     // send to Stock if (orderStatus == RECIVED)
+    const objStock = await stockModel.findOne({itemFactoryId:objOurRequest.itemFactoryId._id})
     if (
       objOurRequest.orderStatus !== orderStatusEnum.RECIVED &&
-      req.body.orderStatus == orderStatusEnum.RECIVED
+      req.body.orderStatus == orderStatusEnum.RECIVED && objStock
     ) {
       await stockModel.create(stockRequest);
     }

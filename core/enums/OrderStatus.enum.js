@@ -1,6 +1,6 @@
 const OrderStatus = {
   RECIVED: "RECIVED",
-  PENDDING: "PENDDING",
+  PENDDING: "PENDING",
   RETURN: "RETURN",
 };
 

@@ -21,18 +21,18 @@ exports.getTypeOfFactories = async (req, res, next) => {
 // get list of types Factory
 exports.getListOfTypesFactoryByClassificationId = async (req, res) => {
   try {
-    const factory = await typeOfFactoryModel.find({
+    const ListOfTypesFactory = await typeOfFactoryModel.find({
       classificationId: req.params.id,
     });
-    if (!factory) {
+    if (!ListOfTypesFactory) {
       return res
         .status(404)
-        .json({ message: "types of Factories not found", data: factory });
+        .json({ message: "types of Factories not found", data: ListOfTypesFactory });
     }
     res.status(200).json({
       statusCode: res.statusCode,
       message: "successfully",
-      data: factory,
+      data: ListOfTypesFactory,
     });
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -86,7 +86,16 @@ exports.updateTypeOfFactory = async (req, res, next) => {
     });
   }
   try {
-    const filterexist = {type:req.body.type , _id:{ $ne:req.body.id}}
+    const exist = await typeOfFactoryModel.findOne({
+      _id: req.params.id,
+    });
+    if (!exist) {
+      return res.status(400).json({
+        statusCode: res.statusCode,
+        message: "not exist type of factory",
+      });
+    }
+    const filterexist = {type:req.body.type , _id:{ $ne:req.params.id}}
     const existingType = await typeOfFactoryModel.findOne(filterexist);
     if (existingType) {
       return res.status(400).json({
@@ -94,7 +103,7 @@ exports.updateTypeOfFactory = async (req, res, next) => {
         message: "type already exists",
       });
     }
-    const filter = { _id: req.body.id };
+    const filter = { _id: req.params.id };
     const updateDocument = {
       $set: req.body,
     };

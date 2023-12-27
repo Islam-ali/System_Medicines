@@ -15,8 +15,8 @@ const validateRegistration = [
 ];
 
 const validateLogin = [
-  body('username').trim().isLength({ min: 3 }).withMessage('Username must be at least 3 characters'),
-  body('password').isLength({ min: 6 }).withMessage('Password must be at least 6 characters'),
+  body('username').notEmpty().withMessage('Username is required').trim().isLength({ min: 3 }).withMessage('Username must be at least 3 characters'),
+  body('password').notEmpty().withMessage('Username is required').isLength({ min: 6 }).withMessage('Password must be at least 6 characters'),
 ];
 
 module.exports = {validateRegistration , validateLogin}

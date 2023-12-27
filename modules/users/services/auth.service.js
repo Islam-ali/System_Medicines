@@ -51,20 +51,20 @@ exports.login = async (req, res) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     const convArray = new convertArray(errors.array());
-    return res.status(400).json({ errors: convArray.errorForm() });
+    return res.status(400).json({ message: "Invalid Data" ,errors: convArray.errorForm() });
   }
   try {
     const { username, password } = req.body;
-    let objError = {}
+    let objError = {};
     const user = await userModel.findOne({ username });
     if (!user) {
-      objError = {username:["username is Wrong"]};
-      return res.status(400).json({ message: "faild" ,  errors: objError});
+      objError = { username: ["username is Wrong"] };
+      return res.status(400).json({ message: "Invalid Data", errors: objError });
     }
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
-      objError = {password:["password is Wrong"]};
-      return res.status(400).json({ message: "faild", errors: objError });
+      objError = { password: ["password is Wrong"] };
+      return res.status(400).json({ message: "Invalid Data", errors: objError });
     }
     // Create JWT token
     const expiresInOneYear = 365 * 24 * 60 * 60;

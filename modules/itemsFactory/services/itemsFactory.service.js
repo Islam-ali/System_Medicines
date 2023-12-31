@@ -62,7 +62,8 @@ exports.getItemsFactoryById = async (req, res) => {
       .findById(req.params.id)
       .populate("factoryId");
     if (!factory) {
-      return res.status(404).json({ message: "Item not found" });
+        
+        return res.status(404).json({statusCode: res.statusCode, message: "Item not found"  });
     }
     res.status(200).json({
       statusCode: res.statusCode,
@@ -81,7 +82,7 @@ exports.getItemsFactoryByFactoryId = async (req, res) => {
       factoryId: req.params.factoryId,
     });
     if (!itemFactory) {
-      return res.status(404).json({ message: "Item not found", data: [] });
+      return res.status(404).json({statusCode: res.statusCode, message: "Item not found", data: [] });
     }
     res.status(200).json({
       statusCode: res.statusCode,
@@ -115,6 +116,7 @@ exports.updateItemsFactory = async (req, res) => {
     });
     if (!itemsFactoryToUpdate) {
       return res.status(404).json({
+        statusCode: res.statusCode,
         message: "Items not found",
         data: [],
       });

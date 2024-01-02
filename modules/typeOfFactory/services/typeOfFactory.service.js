@@ -18,6 +18,28 @@ exports.getTypeOfFactories = async (req, res, next) => {
   }
 };
 
+
+exports.getTypeOfFactoryById = async (req, res) => {
+  try {
+    const objTypeOfFactory = await typeOfFactoryModel.findOne({
+      _id: req.params.id,
+    });
+    if (!objTypeOfFactory) {
+      return res
+        .status(404)
+        .json({statusCode: res.statusCode, message: "types of Factories not found", data: objTypeOfFactory });
+    }
+    res.status(200).json({
+      statusCode: res.statusCode,
+      message: "successfully",
+      data: objTypeOfFactory,
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+
 // get list of types Factory
 exports.getListOfTypesFactoryByClassificationId = async (req, res) => {
   try {

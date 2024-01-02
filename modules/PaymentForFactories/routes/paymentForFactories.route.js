@@ -17,6 +17,9 @@ router.get('/getAllPaymentForOurRequest', verifyToken , checkUserRole('admin') ,
 // Get a specific factory by ID
 router.get('/getPaymentForFactoryById/:id', verifyToken , checkUserRole('admin') , PaymentForFactoryService.getPaymentForFactoryById );
 
+// Get a Payment By FactoryId
+router.get('/getPaymentByFactoryId/:factoryId', verifyToken , checkUserRole('admin') , PaymentForFactoryService.getPaymentByFactoryId );
+
 // // Get factories by TypeOfFactoryId
 // // router.get('/getPaymentForFactoryByFactoryId/:factoryId', verifyToken , checkUserRole('admin') , PaymentForFactoryService.getPaymentForFactoryByFactoryId);
 

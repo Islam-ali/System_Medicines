@@ -106,6 +106,26 @@ exports.getFactoriesByTypeOfFactoryId = async (req, res) => {
   }
 };
 
+exports.getFactoriesByClassificationId = async (req , res) => {
+  try {
+    const listOfFactoy = await FactoryModel.find().populate({
+        path: 'typeOfFactoryId',
+        match: { classificationId: req.params.classificationId }
+    });
+
+    if (!listOfFactoy) {
+      return res.status(404).json({statusCode: res.statusCode, message: "Item not found", data: [] });
+    }
+    res.status(200).json({
+      statusCode: res.statusCode,
+      message: "successfully",
+      data: listOfFactoy,
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+}
+
 // Update a factory by ID
 exports.updateFactory = async (req, res) => {
   const errors = validationResult(req);

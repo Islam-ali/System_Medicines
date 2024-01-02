@@ -172,6 +172,33 @@ exports.getAllPaymentForOurRequest = async (req, res) => {
   }
 };
 
+// Get Payment by factoryId
+exports.getPaymentByFactoryId = async (req, res) => {
+  try {
+    let listOfPaymentByFactoryId = await PaymentForFactory.find().populate({
+      path: "ourRequestId",
+      populate: {
+        path: "itemFactoryId",
+        model: "ItemsFactory",
+        match: { factoryId: req.params.factoryId },
+        select: "name -_id"
+      },
+    });
+    if (listOfPaymentByFactoryId.length == 0) {
+      return res
+        .status(404)
+        .json({ message: "Payment Factory not found", data: [] });
+    }
+    res.status(200).json({
+      statusCode: res.statusCode,
+      message: "successfully",
+      data: listOfPaymentByFactoryId,
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 // Get a specific factory by ID
 exports.getPaymentForFactoryById = async (req, res) => {
   try {

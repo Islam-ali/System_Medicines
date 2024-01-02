@@ -6,6 +6,8 @@ const {verifyToken,checkUserRole} = require('../../../middelware/auth.middleware
 
 router.get('/getTypeOfFactories' , verifyToken, checkUserRole('admin'),typeOfFactory.getTypeOfFactories);
 
+router.get('/getTypeOfFactoryById/:id' , verifyToken, checkUserRole('admin'),typeOfFactory.getTypeOfFactoryById);
+
 router.get('/getListOfTypesFactoryByClassificationId/:id' , verifyToken, checkUserRole('admin'),typeOfFactory.getListOfTypesFactoryByClassificationId);
 
 router.post('/createTypeOfFactory' , verifyToken , checkUserRole('admin') ,validateTypeOfFactory, typeOfFactory.createTypeOfFactory);

@@ -93,6 +93,8 @@ exports.getItemsFactoryByFactoryId = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+
+
 // Update a factory by ID
 exports.updateItemsFactory = async (req, res) => {
   const errors = validationResult(req);

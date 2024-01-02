@@ -17,6 +17,11 @@ router.get('/getFactoryById/:id', verifyToken , checkUserRole('admin') , factory
 // Get factories by TypeOfFactoryId
 router.get('/getFactoriesByTypeOfFactoryId/:typeOfFactoryId', verifyToken , checkUserRole('admin') , factoryService.getFactoriesByTypeOfFactoryId);
 
+
+// Get Factories By ClassificationId
+router.get('/getFactoriesByClassificationId/:classificationId', verifyToken , checkUserRole('admin') , factoryService.getFactoriesByClassificationId);
+
+
 // Update a factory by ID
 router.put('/updateFactory/:id', verifyToken , checkUserRole('admin') , validateFactory , factoryService.updateFactory);
 

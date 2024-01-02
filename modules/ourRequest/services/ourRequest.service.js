@@ -89,7 +89,12 @@ exports.createOurRequest = async (req, res) => {
         });
       }
     }
-    await OurRequest.create(body);
+
+    const mapBody = {
+      ...body,
+      itemName: objItemFactory.name,
+    }
+    await OurRequest.create(mapBody);
     return res.status(201).json({
       statusCode: res.statusCode,
       message: "create Our Request successfully",
@@ -133,7 +138,7 @@ const processRequests = async (listOfOurRequests, res) => {
     res.status(200).json({
       statusCode: res.statusCode,
       message: "Successfully fetched data",
-      data: mapResponse,
+      data: mapResponse.reverse(),
     });
   } catch (error) {
     res.status(500).json({ message: error.message });

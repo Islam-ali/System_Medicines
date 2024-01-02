@@ -59,7 +59,7 @@ app.use(function (req, res, next) {
 // });
 
 // connect DB
-const url = env.DATABASE_URL;
+const url = env.DB_URL;
 mongoose
   .connect(url)
   .then(() => {

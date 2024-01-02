@@ -18,6 +18,9 @@ const ourRequestSchema = new mongoose.Schema({
   },
   unitsNumber: { type: Number, required: true },
   unitsCost: { type: Number, required: true },
+  itemName: { type: String, required: true },
+  code: { type: String, required: true , uniqe: true },
+  
   totalcost: { type: Number },
   wasPaid: { type: Number, default: 0 },
   balance: { type: Number, default: 0 },

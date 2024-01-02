@@ -5,7 +5,7 @@ const paymentForFactorySchema = new mongoose.Schema({
     ref: "OurRequest",
     required: true,
   },
-  wayOfPaymentId:{type: Number , required:true},
+  wayOfPaymentId:{type: Number},
   cashAmount: { type: Number, required: true },
   cashDate: { type: Date , required: true },
   balance: { type: Number, required: true, default: 0 },

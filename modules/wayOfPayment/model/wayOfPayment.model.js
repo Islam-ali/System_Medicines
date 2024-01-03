@@ -1,6 +1,9 @@
-const wayOfPayment = [
-  {name:'cash' , id:1},
-  {name:'vodafone cash' , id:2},
-];
+const mongoose = require("mongoose");
+
+const wayOfPaymentSchema = new mongoose.Schema({
+  name: { type: String, required: true, uniqe: true },
+});
+
+const wayOfPayment = mongoose.model("wayOfPayment", wayOfPaymentSchema);
 
 module.exports = wayOfPayment;

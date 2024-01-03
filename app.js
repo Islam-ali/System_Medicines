@@ -36,6 +36,10 @@ app.use('/ourRequest', require('./modules/ourRequest/routes/ourRequest.route') )
 app.use('/paymentForFactory', require('./modules/PaymentForFactories/routes/paymentForFactories.route') );
 app.use('/factoryAccount', require('./modules/FactoryAccounts/routes/factoryAccount.route') );
 app.use(
+  "/wayOfPayment",
+  require("./modules/wayOfPayment/routes/wayOfPayment.route.js")
+);
+app.use(
   "/stock",
   require("./modules/stock/routes/stock.route")
 );
@@ -59,7 +63,8 @@ app.use(function (req, res, next) {
 // });
 
 // connect DB
-const url = env.DB_URL;
+// const url = env.DB_URL;
+const url = env.DATABASE_URL;
 mongoose
   .connect(url)
   .then(() => {

@@ -377,7 +377,7 @@ exports.changeOrderStatus = async (req, res) => {
     const stockRequest = {
       classificationId: classificationId,
       ourRequestId: objOurRequest._id,
-      itemName: objOurRequest.itemFactoryId.name,
+      itemName: objOurRequest.itemName,
       itemFactoryId: objOurRequest.itemFactoryId._id,
       typeofFactory: objOurRequest.itemFactoryId.factoryId.typeOfFactoryId.type,
       unitsNumber: objOurRequest.unitsNumber,
@@ -386,13 +386,14 @@ exports.changeOrderStatus = async (req, res) => {
     };
 
     // send to Stock if (orderStatus == RECIVED)
-    const objStock = await stockModel.findOne({itemFactoryId:objOurRequest.itemFactoryId._id})
-    if (
-      objOurRequest.orderStatus !== orderStatusEnum.RECIVED &&
-      req.body.orderStatus == orderStatusEnum.RECIVED && objStock
-    ) {
-      await stockModel.create(stockRequest);
+    // const objStock = await stockModel.findOne({ourRequestId:objOurRequest._id});
+    // if(objStock){
+    //   await stockModel.create(stockRequest);
+    // }else 
+    if (req.body.orderStatus == orderStatusEnum.RECIVED) {
+        await stockModel.create(stockRequest);
     }
+
     res.status(201).json({
       statusCode: res.statusCode,
       message: "update Our Request successfully",

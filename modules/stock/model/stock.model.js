@@ -18,7 +18,7 @@ const stockSchema = new mongoose.Schema({
   totalcost: { type: Number, required: true },
   patchNumber: { type: String },
   manfDate: { type: Date },
-  ExpfDate: { type: Date },
+  expDate: { type: Date },
 });
 
 const stock = mongoose.model("Stock", stockSchema);

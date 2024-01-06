@@ -11,4 +11,10 @@ router.get(
   stockService.getStock
 );
 
+router.put(
+  "/updateInfoInStock/:id",
+  verifyToken,
+  checkUserRole("admin"),
+  stockService.updateInfoInStock
+);
 module.exports = router;

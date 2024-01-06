@@ -10,6 +10,7 @@ const paymentForFactorySchema = new mongoose.Schema({
   cashDate: { type: Date , required: true },
   balance: { type: Number, required: true, default: 0 },
   note: { type: String },
+  itemName:{type:String , required:true}
 });
 
 const PaymentForFactory = mongoose.model("PaymentForFactory", paymentForFactorySchema);

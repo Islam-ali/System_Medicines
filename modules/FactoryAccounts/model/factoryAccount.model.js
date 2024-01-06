@@ -15,6 +15,7 @@ const FactoryAccountLogSchema = new mongoose.Schema({
   cashDate: { type: Date, required: true },
   balance: { type: Number, required: true, default: 0 },
   note: { type: String },
+  itemName: { type: String },
 });
 
 const FactoryAccountLog = mongoose.model(

@@ -58,7 +58,7 @@ exports.createOurRequest = async (req, res) => {
           stock = await stockModel.findOne({
             itemFactoryId: material.itemFactoryId,
           });
-          if(!stock){
+          if (!stock) {
             return res.status(400).json({
               statusCode: res.statusCode,
               message: `The required item is not available in stock`,
@@ -71,15 +71,15 @@ exports.createOurRequest = async (req, res) => {
               statusCode: res.statusCode,
               message: `The required number of units in the ${stock.itemName} is not available in stock`,
             });
-          }else{
-            const  newTotalCost = new calculate().totalCost(
+          } else {
+            const newTotalCost = new calculate().totalCost(
               newUnitsNumber,
               stock.unitsCost
             );
             await stockModel.updateOne(
-              {itemFactoryId: material.itemFactoryId},
-              {$set:{unitsNumber : newUnitsNumber,totalcost: newTotalCost}}
-              )
+              { itemFactoryId: material.itemFactoryId },
+              { $set: { unitsNumber: newUnitsNumber, totalcost: newTotalCost } }
+            );
           }
         }
       } else {
@@ -93,7 +93,7 @@ exports.createOurRequest = async (req, res) => {
     const mapBody = {
       ...body,
       itemName: objItemFactory.name,
-    }
+    };
     await OurRequest.create(mapBody);
     return res.status(201).json({
       statusCode: res.statusCode,
@@ -238,7 +238,7 @@ exports.updateOurRequest = async (req, res) => {
   }
   try {
     let objOurRequest = await OurRequest.findOne({
-      _id: req.body.id,
+      _id: req.params.id,
     });
     if (!objOurRequest) {
       return res.status(404).json({
@@ -261,7 +261,6 @@ exports.updateOurRequest = async (req, res) => {
       req.body.unitsCost
     );
 
-
     const objFactory = await FactoryModel.findOne({
       _id: objItemFactory.factoryId,
     }).populate("typeOfFactoryId");
@@ -276,14 +275,14 @@ exports.updateOurRequest = async (req, res) => {
             itemFactoryId: material.itemFactoryId,
           });
           const newUnitsNumber = stock.unitsNumber + material.unitsNumber;
-            const  newTotalCost = new calculate().totalCost(
-              newUnitsNumber,
-              stock.unitsCost
-            );
-            await stockModel.updateOne(
-              {itemFactoryId: material.itemFactoryId},
-              {$set:{unitsNumber : newUnitsNumber,totalcost: newTotalCost}}
-              )
+          const newTotalCost = new calculate().totalCost(
+            newUnitsNumber,
+            stock.unitsCost
+          );
+          await stockModel.updateOne(
+            { itemFactoryId: material.itemFactoryId },
+            { $set: { unitsNumber: newUnitsNumber, totalcost: newTotalCost } }
+          );
         }
         // new stock
         for (const material of body.listOfMaterials) {
@@ -297,15 +296,15 @@ exports.updateOurRequest = async (req, res) => {
               statusCode: res.statusCode,
               message: `The required number of units in the ${stock.itemName} is not available in stock`,
             });
-          }else{
-            const  newTotalCost = new calculate().totalCost(
+          } else {
+            const newTotalCost = new calculate().totalCost(
               newUnitsNumber,
               stock.unitsCost
             );
             await stockModel.updateOne(
-              {itemFactoryId: material.itemFactoryId},
-              {$set:{unitsNumber : newUnitsNumber,totalcost: newTotalCost}}
-              )
+              { itemFactoryId: material.itemFactoryId },
+              { $set: { unitsNumber: newUnitsNumber, totalcost: newTotalCost } }
+            );
           }
         }
       } else {
@@ -360,20 +359,21 @@ exports.changeOrderStatus = async (req, res) => {
         data: [],
       });
     }
-    
+
     const filter = { _id: req.params.id };
     const updateDocument = {
       $set: { orderStatus: req.body.orderStatus },
     };
 
     await OurRequest.updateOne(filter, updateDocument);
-    
+
     // const objFactory = await FactoryModel.findOne({
     //   _id: objItemFactory.factoryId,
     // }).populate("typeOfFactoryId");
-    
-    const classificationId = objOurRequest.itemFactoryId.factoryId.typeOfFactoryId.classificationId;
-    
+
+    const classificationId =
+      objOurRequest.itemFactoryId.factoryId.typeOfFactoryId.classificationId;
+
     const stockRequest = {
       classificationId: classificationId,
       ourRequestId: objOurRequest._id,
@@ -389,9 +389,9 @@ exports.changeOrderStatus = async (req, res) => {
     // const objStock = await stockModel.findOne({ourRequestId:objOurRequest._id});
     // if(objStock){
     //   await stockModel.create(stockRequest);
-    // }else 
+    // }else
     if (req.body.orderStatus == orderStatusEnum.RECIVED) {
-        await stockModel.create(stockRequest);
+      await stockModel.create(stockRequest);
     }
 
     res.status(201).json({
@@ -414,6 +414,38 @@ exports.deleteOurRequest = async (req, res) => {
         message: "Not Found Item",
       });
     }
+    stock = await stockModel.findOne({
+      ourRequestId: objOurRequest._id,
+    });
+
+    if (objOurRequest.listOfMaterials.length > 0) {
+      // old stock
+      for (const material of objOurRequest.listOfMaterials) {
+        const stockMaterial = await stockModel.findOne({
+          itemFactoryId: material.itemFactoryId,
+        });
+        const newUnitsNumber = stockMaterial.unitsNumber + material.unitsNumber;
+        const newTotalCost = new calculate().totalCost(
+          newUnitsNumber,
+          stockMaterial.unitsCost
+        );
+        await stockModel.updateOne(
+          { itemFactoryId: material.itemFactoryId },
+          { $set: { unitsNumber: newUnitsNumber, totalcost: newTotalCost } }
+        );
+      }
+    }
+    // return res.json({stock})
+    // // const newUnitsNumber = stock.unitsNumber - objOurRequest.unitsNumber;
+    // // const newTotalCost = new calculate().totalCost(
+    // //   newUnitsNumber,
+    // //   stock.unitsCost
+    // // );
+    await stockModel.deleteOne({ourRequestId : objOurRequest._id})
+    // await stockModel.updateOne(
+    //   { itemFactoryId: objOurRequest.itemFactoryId },
+    //   { $set: { unitsNumber: newUnitsNumber, totalcost: newTotalCost } }
+    // );
     await OurRequest.deleteOne(filter);
     res.status(201).json({
       statusCode: res.statusCode,

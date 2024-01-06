@@ -70,6 +70,7 @@ exports.createPaymentForFactory = async (req, res) => {
 
     // create PaymentForFactory
     body["balance"] = balance;
+    body["itemName"] = objOurRequest.itemName;
     const newPaymentForFactory = await PaymentForFactory.create(body);
     if (newPaymentForFactory) {
       newPaymentForFactoryId = newPaymentForFactory._id;

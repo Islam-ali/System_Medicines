@@ -16,7 +16,7 @@ exports.register = async (req, res, next) => {
       errors: convArray.errorForm(),
     });
   }
-  const { username, password, email, phoneNumber, role } = req.body;
+  const { username, password, email, phoneNumber, roleId } = req.body;
   try {
     const existingUser = await userModel.findOne({
       $or: [{ username }, { email }, { phoneNumber }],
@@ -32,7 +32,7 @@ exports.register = async (req, res, next) => {
       password,
       email,
       phoneNumber,
-      role,
+      roleId,
     });
     await newUser.save();
     res.status(201).json({
@@ -56,7 +56,7 @@ exports.login = async (req, res) => {
   try {
     const { username, password } = req.body;
     let objError = {};
-    const user = await userModel.findOne({ username });
+    const user = await userModel.findOne({ username }).populate("roleId");
     if (!user) {
       objError = { username: ["username is Wrong"] };
       return res.status(400).json({ message: "Invalid Data", errors: objError });
@@ -68,9 +68,12 @@ exports.login = async (req, res) => {
     }
     // Create JWT token
     const expiresInOneYear = 365 * 24 * 60 * 60;
+    const payload = {
+      userId: user._id, roleId: user.roleId._id , permissions: user.roleId.permissions.filter(permission => permission.isSelected).map(permission => permission.permission)
+    };
     const token = jwt.sign(
-      { userId: user._id, username: user.username, role: user.role },
-      env.JWT_SECRET,
+      payload,
+      env.JWT_SECRET,{ algorithm: 'HS256' },
       {
         expiresIn: expiresInOneYear,
       }
@@ -79,6 +82,84 @@ exports.login = async (req, res) => {
       statusCode: res.statusCode,
       message: "Login successfully",
       data: { token: token },
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// Get a specific User by ID
+exports.getUserById = async (req, res) => {
+  try {
+    const User = await userModel.findById(req.params.id).populate("roleId");
+    if (!User) {
+      return res.status(404).json({ message: "User not found" });
+    }
+    res.status(200).json({
+      statusCode: res.statusCode,
+      message: "successfully",
+      data: User,
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+exports.getAllUsers = async (req, res) => {
+  try {
+    const users = await userModel.find().populate("roleId");
+    res.status(200).json({
+      statusCode: res.statusCode,
+      message: "successfully",
+      data: users,
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+
+// Update a User by ID
+exports.updateUser = async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    const convArray = new convertArray(errors.array());
+    return res.status(400).json({
+      statusCode: res.statusCode,
+      message: "invalid Error",
+      errors: convArray.errorForm(),
+    });
+  }
+  const { username , email , phoneNumber, roleId } = req.body;
+  try {
+    const UserToUpdate = await userModel.findOne({ _id: req.params.id });
+    if (!UserToUpdate) {
+      return res
+        .status(404)
+        .json({
+          message: "User not found",
+          data: [],
+        });
+    }
+    const existingUser = await userModel.findOne({
+      $or: [{ username }, { email }, { phoneNumber }],
+      _id: { $ne: req.params.id }
+    });
+    if (existingUser) {
+      return res.status(400).json({
+        statusCode: res.statusCode,
+        message: "Username or email or phoneNumber already exists",
+      });
+    }
+    UserToUpdate.username = username
+    UserToUpdate.email = email
+    UserToUpdate.phoneNumber = phoneNumber
+    UserToUpdate.roleId = roleId
+
+    await UserToUpdate.save();
+    res.status(201).json({
+      statusCode: res.statusCode,
+      message: "update User successfully",
     });
   } catch (error) {
     res.status(500).json({ message: error.message });

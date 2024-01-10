@@ -1,12 +1,12 @@
 const express = require('express');
 const router = express.Router();
-const {verifyToken,checkUserRole} = require('../../../middelware/auth.middleware');
+const {verifyToken,checkPermission} = require('../../../middelware/auth.middleware');
 const classifications = require('../model/classification.model');
 const typeOfFactoryModel = require('../../typeOfFactory/model/typeOfFactory.model');
 
 
 // Get all classification
-router.get('/listOfClassifications', verifyToken , checkUserRole('admin') , async (req,res)=>{
+router.get('/listOfClassifications', verifyToken , checkPermission('admin') , async (req,res)=>{
   const allClassifications = await classifications;
   res.status(200).json({
     statusCode: res.statusCode,
@@ -15,7 +15,7 @@ router.get('/listOfClassifications', verifyToken , checkUserRole('admin') , asyn
   });
 });
 
-router.get('/listOflinks', verifyToken , checkUserRole('admin') , async (req,res)=>{
+router.get('/listOflinks', verifyToken , checkPermission('admin') , async (req,res)=>{
   const allClassifications = await classifications;
   const allTypesFactories = await  typeOfFactoryModel.find({});
   const list = [];

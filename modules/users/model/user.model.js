@@ -8,7 +8,11 @@ const userSchema = new mongoose.Schema({
   password: { type: String, required: true },
   email: { type: String, required: true, unique: true },
   phoneNumber: { type: String, required: true },
-  role: { type: String, enum: [UserRole.USER, UserRole.ADMIN], default: UserRole.USER },
+  roleId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Role',
+    // required: true,
+  },
 });
 
 

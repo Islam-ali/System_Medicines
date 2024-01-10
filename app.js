@@ -27,6 +27,7 @@ app.use(express.static(path.join(__dirname, "public")));
 // });
 
 app.use('/auth', require('./modules/users/routes/auth.route') );
+app.use('/roles', require('./modules/auth/routes/role.route.js') );
 app.use('/payment', require('./modules/classification/routes/classification.route') );
 app.use('/classifications', require('./modules/classification/routes/classification.route') );
 app.use('/typeOfFactory', require('./modules/typeOfFactory/routes/typeOfFactory.route') );

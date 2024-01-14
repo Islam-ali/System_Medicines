@@ -44,6 +44,10 @@ app.use(
   "/stock",
   require("./modules/stock/routes/stock.route")
 );
+app.use(
+  "/branchStock",
+  require("./modules/branchStock/routes/branchStock.route")
+);
 
 app.use("/map" , require("./modules/map/routes/map.route"))
 

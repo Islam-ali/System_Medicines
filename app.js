@@ -48,7 +48,13 @@ app.use(
   "/branchStock",
   require("./modules/branchStock/routes/branchStock.route")
 );
+app.use('/client', require('./modules/client/routes/client.route') );
+app.use('/government', require('./modules/government/routes/government.route') );
+app.use('/city', require('./modules/city/routes/city.route') );
 
+
+
+// test afaq
 app.use("/map" , require("./modules/map/routes/map.route"))
 
 // catch 404 and forward to error handler

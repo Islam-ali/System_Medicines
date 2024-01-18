@@ -11,8 +11,8 @@ const branchStockSchema = new mongoose.Schema({
     required: true,
   },
   unitsNumber: { type: Number, required: true },
-  pharmacyPrice: { type: Number , required: true },
-  totalpharmacyPrice: { type: Number , required: true}, // unitsNumber * pharmacyPrice
+  // pharmacyPrice: { type: Number , required: true },
+  // totalpharmacyPrice: { type: Number , required: true}, // unitsNumber * pharmacyPrice
   publicPrice: { type: Number , required: true },
   date: { type: Date , required: true},
 });

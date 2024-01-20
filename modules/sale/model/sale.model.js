@@ -12,17 +12,17 @@ const saleSchema = new mongoose.Schema({
     ref: 'client',
     required: true,
   },
+  date: { type: Date , required: true},
+  // payment: { type: Number},
+  discount: { type: Number , required: true},
+  bouns: { type: Number , required: true},
   salesQuantity: { type: Number, required: true },
   pharmacyPrice: { type: Number, required: true },
   salesValue: { type: Number , required: true}, // salesQuantity * pharmacyPrice
-  discount: { type: Number, required: true },
-  bouns: { type: Number, required: true }, // bouns = salesQuantity
-  received: { type: Number, required: true },
-  balance: { type: Number, required: true },
+  received: { type: Number , required: true},
+  balance: { type: Number}, // salesValue - received
   netProfit: { type: Number, required: true }, // pharmacyPrice - factoryPrice
   totalNetProfit: { type: Number, required: true }, // received - (salesQuantity - factoryPrice)
-  date: { type: Date , required: true},
-
 });
 
 

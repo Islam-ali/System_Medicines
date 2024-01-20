@@ -12,6 +12,11 @@ const saleSchema = new mongoose.Schema({
     ref: 'client',
     required: true,
   },
+  userId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "users",
+    required: true,
+  },
   date: { type: Date , required: true},
   // payment: { type: Number},
   discount: { type: Number , required: true},
@@ -23,6 +28,7 @@ const saleSchema = new mongoose.Schema({
   balance: { type: Number}, // salesValue - received
   netProfit: { type: Number, required: true }, // pharmacyPrice - factoryPrice
   totalNetProfit: { type: Number, required: true }, // received - (salesQuantity - factoryPrice)
+  profit:{ type: Number },
 });
 
 

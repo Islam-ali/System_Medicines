@@ -35,7 +35,6 @@ const checkPermission = (requiredPermission) => {
 
     try {
       // Check if the user's role has the required permission
-      console.log(permissions);
       if (permissions.includes(requiredPermission)) {
         next(); // User has the required permission, proceed to the next middleware or route handler
       } else {

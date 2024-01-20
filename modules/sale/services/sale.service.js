@@ -93,6 +93,7 @@ exports.createSale = async (req, res, next) => {
     const newSale = new saleModel({
       branchStockId: body.branchStockId,
       clientId: body.clientId,
+      userId: body.userId,
       date: body.date,
       discount: body.discount || 0,
       bouns: body.bouns || 0,
@@ -198,6 +199,7 @@ exports.updateSale = async (req, res, next) => {
     // update Sale
       objSale.branchStockId = body.branchStockId;
       objSale.clientId = body.clientId;
+      objSale.userId = body.userId,
       objSale.date = body.date;
       objSale.discount = body.discount || 0;
       objSale.bouns = body.bouns || 0;

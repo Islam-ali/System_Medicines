@@ -52,6 +52,8 @@ app.use('/client', require('./modules/client/routes/client.route') );
 app.use('/government', require('./modules/government/routes/government.route') );
 app.use('/city', require('./modules/city/routes/city.route') );
 app.use('/sales', require('./modules/sale/routes/sale.route') );
+app.use('/paymentSale', require('./modules/paymentSale/routes/paymentSale.route') );
+
 
 
 

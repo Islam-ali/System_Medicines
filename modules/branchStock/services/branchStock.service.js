@@ -4,6 +4,12 @@ const branchStockModel = require("../model/branchStock.model");
 exports.getbranchStock = async (req, res) => {
   console.log(req.userId);
   const userId = req.userId;
+  const isAllow = req.roleName == 'Admin';
+
+  let query = {};
+  if (!isAllow) {
+    query = { userId: userId };
+  }
   try {
     const listOfbranchStock = await branchStockModel
       .find({

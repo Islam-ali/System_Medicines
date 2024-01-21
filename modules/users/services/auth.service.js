@@ -69,7 +69,7 @@ exports.login = async (req, res) => {
     // Create JWT token
     const expiresInOneYear = 365 * 24 * 60 * 60;
     const payload = {
-      userId: user._id, roleId: user.roleId._id , permissions: user.roleId.permissions.filter(permission => permission.isSelected).map(permission => permission.permission)
+      userId: user._id, roleName: user.roleId.name , permissions: user.roleId.permissions.filter(permission => permission.isSelected).map(permission => permission.permission)
     };
     const token = jwt.sign(
       payload,

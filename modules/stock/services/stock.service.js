@@ -24,9 +24,38 @@ exports.getStock = async (req, res) => {
   }
 };
 
+exports.getStockById = async (req, res) => {
+  try {
+    const objStock = await stockModel.findOne({
+        _id: req.params.id,
+      }).populate({
+        path: "ourRequestId",
+        populate: {
+          path: "itemFactoryId",
+          model: "ItemsFactory",
+          select: "name -_id",
+        },
+      });
+    if (!objStock) {
+      return res.status(404).json({
+        statusCode: res.statusCode,
+        message: "stock not Result",
+        data: objStock,
+      });
+    }
+    res.status(200).json({
+      statusCode: res.statusCode,
+      message: "successfully",
+      data: objStock,
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 exports.updateInfoInStock = async (req , res) => {
-  const {patchNumber,manfDate,expDate,pharmacyPrice , publicPrice} = req.body
-  if( !patchNumber|| !manfDate|| !expDate|| !pharmacyPrice){
+  const {patchNumber,manfDate,expDate} = req.body
+  if( !patchNumber|| !manfDate|| !expDate){
     return res.status(400).json({ message: "invalid Data" });
   }
   try{

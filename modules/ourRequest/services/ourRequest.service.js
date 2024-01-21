@@ -374,16 +374,21 @@ exports.changeOrderStatus = async (req, res) => {
     const classificationId =
       objOurRequest.itemFactoryId.factoryId.typeOfFactoryId.classificationId;
 
-    const stockRequest = {
-      classificationId: classificationId,
-      ourRequestId: objOurRequest._id,
-      itemName: objOurRequest.itemName,
-      itemFactoryId: objOurRequest.itemFactoryId._id,
-      typeofFactory: objOurRequest.itemFactoryId.factoryId.typeOfFactoryId.type,
-      unitsNumber: objOurRequest.unitsNumber,
-      unitsCost: objOurRequest.unitsCost,
-      totalcost: objOurRequest.totalcost,
-    };
+    const stockRequest = new stockModel(
+      {
+        classificationId: classificationId,
+        ourRequestId: objOurRequest._id,
+        itemName: objOurRequest.itemName,
+        itemFactoryId: objOurRequest.itemFactoryId._id,
+        typeofFactory: objOurRequest.itemFactoryId.factoryId.typeOfFactoryId.type,
+        unitsNumber: objOurRequest.unitsNumber,
+        unitsCost: objOurRequest.unitsCost,
+        totalcost: objOurRequest.totalcost,
+        patchNumber: '', 
+        manfDate: '', 
+        expDate: '', 
+      }
+    ) 
 
     // send to Stock if (orderStatus == RECIVED)
     // const objStock = await stockModel.findOne({ourRequestId:objOurRequest._id});
@@ -391,7 +396,7 @@ exports.changeOrderStatus = async (req, res) => {
     //   await stockModel.create(stockRequest);
     // }else
     if (req.body.orderStatus == orderStatusEnum.RECIVED) {
-      await stockModel.create(stockRequest);
+      await stockRequest.save();
     }
 
     res.status(201).json({

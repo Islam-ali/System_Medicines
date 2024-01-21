@@ -11,6 +11,13 @@ router.get(
   stockService.getStock
 );
 
+router.get(
+  "/getStockById/:id",
+  verifyToken,
+  // checkPermission("stock.read"),
+  stockService.getStockById
+);
+
 router.put(
   "/updateInfoInStock/:id",
   verifyToken,

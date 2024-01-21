@@ -123,7 +123,6 @@ exports.createSale = async (req, res, next) => {
       message: "Created Sale successfully",
     });
   } catch (error) {
-    res
     res.status(500).json({
       statusCode: res.statusCode,
       message: "Failed to create sale",

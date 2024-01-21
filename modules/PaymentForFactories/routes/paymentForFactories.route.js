@@ -6,27 +6,27 @@ const validatePaymentForFactory = require('../validation/paymentForFactories.val
 
 
 // Create a new factory
-router.post('/createPaymentForFactory', verifyToken , checkPermission('admin') , validatePaymentForFactory ,PaymentForFactoryService.createPaymentForFactory);
+router.post('/createPaymentForFactory', verifyToken  , validatePaymentForFactory ,PaymentForFactoryService.createPaymentForFactory);
 
 // Get all factories
-router.get('/getAllPaymentForFactories', verifyToken , checkPermission('admin') ,PaymentForFactoryService.getAllPaymentForFactories);
+router.get('/getAllPaymentForFactories', verifyToken  ,PaymentForFactoryService.getAllPaymentForFactories);
 
 // get All Payment For Our Request
-router.get('/getAllPaymentForOurRequest', verifyToken , checkPermission('admin') ,PaymentForFactoryService.getAllPaymentForOurRequest);
+router.get('/getAllPaymentForOurRequest', verifyToken  ,PaymentForFactoryService.getAllPaymentForOurRequest);
 
 // Get a specific factory by ID
-router.get('/getPaymentForFactoryById/:id', verifyToken , checkPermission('admin') , PaymentForFactoryService.getPaymentForFactoryById );
+router.get('/getPaymentForFactoryById/:id', verifyToken  , PaymentForFactoryService.getPaymentForFactoryById );
 
 // Get a Payment By FactoryId
-router.get('/getPaymentByFactoryId/:factoryId', verifyToken , checkPermission('admin') , PaymentForFactoryService.getPaymentByFactoryId );
+router.get('/getPaymentByFactoryId/:factoryId', verifyToken  , PaymentForFactoryService.getPaymentByFactoryId );
 
 // // Get factories by TypeOfFactoryId
-// // router.get('/getPaymentForFactoryByFactoryId/:factoryId', verifyToken , checkPermission('admin') , PaymentForFactoryService.getPaymentForFactoryByFactoryId);
+// // router.get('/getPaymentForFactoryByFactoryId/:factoryId', verifyToken  , PaymentForFactoryService.getPaymentForFactoryByFactoryId);
 
 // Update a factory by ID
-router.put('/updatePaymentForFactory/:id', verifyToken , checkPermission('admin') , validatePaymentForFactory , PaymentForFactoryService.updatePaymentForFactory);
+router.put('/updatePaymentForFactory/:id', verifyToken  , validatePaymentForFactory , PaymentForFactoryService.updatePaymentForFactory);
 
 // Delete a factory by ID
-router.delete('/deletePaymentForFactory/:id',  verifyToken , checkPermission('admin') , PaymentForFactoryService.deletePaymentForFactory);
+router.delete('/deletePaymentForFactory/:id',  verifyToken  , PaymentForFactoryService.deletePaymentForFactory);
 
 module.exports = router;

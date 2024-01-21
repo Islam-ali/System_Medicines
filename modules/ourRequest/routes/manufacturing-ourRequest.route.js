@@ -6,13 +6,13 @@ const validateOurRequest = require('../validation/ourRequest.validation');
 
 
 // Create a new factory
-router.post('/manufacturing/createOurRequest', verifyToken , checkPermission('admin') , validateOurRequest ,OurRequestService.createOurRequest);
+router.post('/manufacturing/createOurRequest', verifyToken  , validateOurRequest ,OurRequestService.createOurRequest);
 
 // Get all factories
-router.get('/manufacturing/getAllOurRequests', verifyToken , checkPermission('admin') ,OurRequestService.getAllOurRequests);
+router.get('/manufacturing/getAllOurRequests', verifyToken  ,OurRequestService.getAllOurRequests);
 
 // Get a specific factory by ID
-router.get('/manufacturing/getOurRequestById/:id', verifyToken , checkPermission('admin') , OurRequestService.getOurRequestById );
+router.get('/manufacturing/getOurRequestById/:id', verifyToken  , OurRequestService.getOurRequestById );
 
 // Get Our Request by FactoryId
 router.get(
@@ -31,7 +31,7 @@ router.get(
 );
 
 // Update a factory by ID
-router.put('/manufacturing/updateOurRequest/:id', verifyToken , checkPermission('admin') , validateOurRequest , OurRequestService.updateOurRequest);
+router.put('/manufacturing/updateOurRequest/:id', verifyToken  , validateOurRequest , OurRequestService.updateOurRequest);
 
 router.put(
   '/manufacturing/changeOrderStatus/:id' ,
@@ -42,6 +42,6 @@ router.put(
 
 
 // Delete a factory by ID
-router.delete('/manufacturing/deleteOurRequest/:id',  verifyToken , checkPermission('admin') , OurRequestService.deleteOurRequest);
+router.delete('/manufacturing/deleteOurRequest/:id',  verifyToken  , OurRequestService.deleteOurRequest);
 
 module.exports = router;

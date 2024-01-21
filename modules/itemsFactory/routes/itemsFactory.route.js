@@ -6,21 +6,21 @@ const validateitemsFactory = require('../validation/itemsFactory.validation');
 
 
 // Create a new factory
-router.post('/createItemsFactory', verifyToken , checkPermission('admin') , validateitemsFactory ,itemsFactoryService.createItemsFactory);
+router.post('/createItemsFactory', verifyToken  , validateitemsFactory ,itemsFactoryService.createItemsFactory);
 
 // Get all factories
-router.get('/getAllItemsFactories', verifyToken , checkPermission('admin') ,itemsFactoryService.getAllItemsFactories);
+router.get('/getAllItemsFactories', verifyToken  ,itemsFactoryService.getAllItemsFactories);
 
 // Get a specific factory by ID
-router.get('/getItemsFactoryById/:id', verifyToken , checkPermission('admin') , itemsFactoryService.getItemsFactoryById );
+router.get('/getItemsFactoryById/:id', verifyToken  , itemsFactoryService.getItemsFactoryById );
 
 // Get factories by TypeOfFactoryId
-router.get('/getItemsFactoryByFactoryId/:factoryId', verifyToken , checkPermission('admin') , itemsFactoryService.getItemsFactoryByFactoryId);
+router.get('/getItemsFactoryByFactoryId/:factoryId', verifyToken  , itemsFactoryService.getItemsFactoryByFactoryId);
 
 // Update a factory by ID
-router.put('/updateItemsFactory/:id', verifyToken , checkPermission('admin') , validateitemsFactory , itemsFactoryService.updateItemsFactory);
+router.put('/updateItemsFactory/:id', verifyToken  , validateitemsFactory , itemsFactoryService.updateItemsFactory);
 
 // Delete a factory by ID
-router.delete('/deleteItemsFactory/:id',  verifyToken , checkPermission('admin') , itemsFactoryService.deleteItemsFactory);
+router.delete('/deleteItemsFactory/:id',  verifyToken  , itemsFactoryService.deleteItemsFactory);
 
 module.exports = router;

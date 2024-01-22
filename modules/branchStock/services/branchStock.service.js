@@ -1,15 +1,14 @@
 const branchStockModel = require("../model/branchStock.model");
-
+const userModel = require("../../users/model/user.model")
 // Get Factory Stock
 exports.getbranchStock = async (req, res) => {
-  console.log(req.userId);
-  const userId = req.userId;
-  const isAllow = req.roleName == 'Admin';
+  const userId = req.params.userId;
+  // const isAllow = req.roleName == 'Admin';
 
-  let query = {};
-  if (!isAllow) {
-    query = { userId: userId };
-  }
+  // let query = {};
+  // if (!isAllow) {
+  //   query = { userId: userId };
+  // }
   try {
     const listOfbranchStock = await branchStockModel
       .find({
@@ -34,23 +33,25 @@ exports.getbranchStock = async (req, res) => {
   }
 };
 
-// exports.updateInfoInbranchStock = async (req , res) => {
-//   try{
-//     const objStock = await stockModel.findOne({_id:req.params.id});
-//     if(!objStock){
-//       return res.status(404).json({ message: "item not found" });
-//     }
+exports.getAllBranchStock = async (req , res) => {
+  try{
+    let newListOfUsersAndCountOfItems = [];
+    const ListOfUsers = await userModel.find({ roleId: { $ne: '659db7e1e7aef720ff187185' } }).select('-password');
+    
+    await Promise.all(ListOfUsers.map(async (user) => {
+      const countOfItems = await branchStockModel.countDocuments({ userId: user._id });
+      const objUsersAndCountOfItems = {
+        user: user,
+        countOfItems: countOfItems,
+      };
+      newListOfUsersAndCountOfItems.push(objUsersAndCountOfItems);
+    }));
+   return res.status(200).json({      
+    statusCode: res.statusCode,
+    message: "successfully",
+    data: newListOfUsersAndCountOfItems });
 
-//     objStock.patchNumber = req.body.patchNumber
-//     objStock.manfDate = req.body.manfDate
-//     objStock.expDate = req.body.expDate
-
-//     await objStock.save();
-//     res.status(201).json({
-//       statusCode: res.statusCode,
-//       message: "update item successfully",
-//     });
-//   }catch(error){
-//     res.status(500).json({ message: error.message });
-//   }
-// }
+  }catch(error){
+    res.status(500).json({ message: error.message });
+  }
+}

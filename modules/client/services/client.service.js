@@ -20,7 +20,14 @@ exports.listTypeOfClient = async (req, res, next) => {
 // get All type of Factories
 exports.getAllClient = async (req, res, next) => {
   try {
-    const allClient = await clientModel.find({});
+    const allClient = await clientModel.find({}).populate({
+      path: "cityId",
+      model: "city",
+      populate: {
+        path: "governmentId",
+        model: "government",
+      },
+    })
     res.status(200).json({
       statusCode: res.statusCode,
       message: "successfully",

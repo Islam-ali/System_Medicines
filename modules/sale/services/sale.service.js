@@ -7,7 +7,47 @@ const convertArray = require("../../../core/shared/errorForm");
 // get All type of Factories
 exports.getAllSale = async (req, res, next) => {
   try {
-    const allSale = await saleModel.find().populate("branchStockId");
+    const allSale = await saleModel.find().populate({
+      path: "userId",
+      model: "users",
+      select: "-password -roleId",
+    })
+    .populate({
+      path: "branchStockId",
+      model: "branchStock",
+    })
+    .populate({
+      path: "clientId",
+      model: "client",
+    });
+    res.status(200).json({
+      statusCode: res.statusCode,
+      message: "successfully",
+      data: allSale,
+    });
+  } catch (error) {
+    res
+      .status(500)
+      .json({ statusCode: res.statusCode, message: error.message });
+  }
+};
+
+// get All type of Factories
+exports.getAllSalesByClientId = async (req, res, next) => {
+  try {
+    const allSale = await saleModel.find({clientId:req.params.clientId}).populate({
+      path: "userId",
+      model: "users",
+      select: "-password -roleId",
+    })
+    .populate({
+      path: "branchStockId",
+      model: "branchStock",
+    })
+    .populate({
+      path: "clientId",
+      model: "client",
+    });
     res.status(200).json({
       statusCode: res.statusCode,
       message: "successfully",

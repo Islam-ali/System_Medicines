@@ -6,6 +6,9 @@ const {verifyToken,checkPermission} = require('../../../middelware/auth.middlewa
 
 router.get('/getAllSale' , verifyToken, checkPermission('user.create'),sale.getAllSale);
 
+router.get('/getAllSalesByClientId/:clientId' , verifyToken, checkPermission('user.create'),sale.getAllSalesByClientId);
+
+
 router.get('/getSaleById/:Id' , verifyToken, checkPermission('user.create'),sale.getSaleById);
 
 router.post('/createSale' , verifyToken , checkPermission('user.create') ,validateSale, sale.createSale);

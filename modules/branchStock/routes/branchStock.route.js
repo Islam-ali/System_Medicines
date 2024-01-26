@@ -5,7 +5,7 @@ const {verifyToken,checkPermission} = require('../../../middelware/auth.middlewa
 
 // Get all factories
 router.get(
-  "/getbranchStock/:userId",
+  "/getbranchStock",
   verifyToken,
   // checkPermission("branchStock.read"),
   branchStockService.getbranchStock

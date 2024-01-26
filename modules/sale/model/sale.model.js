@@ -28,7 +28,7 @@ const saleSchema = new mongoose.Schema({
   balance: { type: Number}, // salesValue - received
   netProfit: { type: Number, required: true }, // pharmacyPrice - factoryPrice
   totalNetProfit: { type: Number, required: true }, // received - (salesQuantity - factoryPrice)
-  profit:{ type: Number },
+  profit:{ type: Number }, // after discount
 });
 
 

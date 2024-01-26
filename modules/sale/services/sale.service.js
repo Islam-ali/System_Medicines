@@ -15,6 +15,10 @@ exports.getAllSale = async (req, res, next) => {
     .populate({
       path: "branchStockId",
       model: "branchStock",
+      populate:{
+        path: "stockId",
+        model: "Stock"
+      }
     })
     .populate({
       path: "clientId",
@@ -43,6 +47,10 @@ exports.getAllSalesByClientId = async (req, res, next) => {
     .populate({
       path: "branchStockId",
       model: "branchStock",
+      populate:{
+        path: "stockId",
+        model: "Stock"
+      }
     })
     .populate({
       path: "clientId",
@@ -99,7 +107,7 @@ exports.createSale = async (req, res, next) => {
   try {
     const objBranchStock = await branchStockModel
       .findOne({
-        userId: req.userId,
+        userId: body.userId,
         _id: body.branchStockId,
       })
       .populate({
@@ -196,7 +204,7 @@ exports.updateSale = async (req, res, next) => {
 
     const objBranchStock = await branchStockModel
       .findOne({
-        userId: req.userId,
+        userId: body.userId,
         _id: body.branchStockId,
       })
       .populate({
@@ -277,16 +285,33 @@ exports.updateSale = async (req, res, next) => {
 exports.deleteSale = async (req, res) => {
   try {
     const filter = { _id: req.params.id };
-    const objSale = await saleModel.findOne(filter);
+    const objSale = await saleModel.findOne(filter).populate({
+      path: "userId",
+      model: "users",
+      select: "-password -roleId",
+    })
+    .populate({
+      path: "branchStockId",
+      model: "branchStock",
+      populate:{
+        path: "stockId",
+        model: "Stock"
+      }
+    })
+    .populate({
+      path: "clientId",
+      model: "client",
+    });
     if (!objSale) {
       return res.status(404).json({
         statusCode: res.statusCode,
         message: "Not Found Sale",
       });
     }
+    const userId = objSale.branchStockId.userId._id;
     const objBranchStock = await branchStockModel
       .findOne({
-        userId: req.userId,
+        userId: userId,
         _id: objSale.branchStockId,
       })
       .populate({

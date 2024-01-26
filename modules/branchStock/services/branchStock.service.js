@@ -2,18 +2,16 @@ const branchStockModel = require("../model/branchStock.model");
 const userModel = require("../../users/model/user.model")
 // Get Factory Stock
 exports.getbranchStock = async (req, res) => {
-  const userId = req.params.userId;
+  const userId = req.query.userId;
   // const isAllow = req.roleName == 'Admin';
 
-  // let query = {};
-  // if (!isAllow) {
-  //   query = { userId: userId };
-  // }
+  let query = {};
+  if (userId) {
+    query = { userId: userId };
+  }
   try {
     const listOfbranchStock = await branchStockModel
-      .find({
-        userId: userId,
-      })
+      .find(query)
       .populate({
         path: "userId",
         model: "users",

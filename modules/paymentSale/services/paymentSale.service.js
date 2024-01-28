@@ -4,19 +4,37 @@ const branchStockModel = require("../../branchStock/model/branchStock.model");
 const stockModel = require("../../stock/model/stock.model");
 const { validationResult } = require("express-validator");
 const convertArray = require("../../../core/shared/errorForm");
-
+const UserRole = require("../../../core/enums/role.enum");
 // get All type of Factories
 exports.getAllPaymentSale = async (req, res, next) => {
   const userId = req.userId;
-  // const isAllow = req.permissions.includes('getAllPaymentSale.view');
+  const clientId = req.query.clientId;
+  const isAllow = req.roleName == UserRole.ADMIN;
   let query = {};
-  // if (!isAllow) {
-  //   query = { userId: userId };
-  // }
+  let matchSale = {};
+  if (!isAllow) {
+    query["saleId.userId"] = userId;
+  }
+  clientId ? matchSale["clientId"] = clientId : null;
   try {
     const allPaymentSale = await paymentSaleModel
       .find(query)
-      .populate("saleId");
+      .populate({
+        path: 'saleId',
+        match: matchSale,
+        populate:{
+          path: "branchStockId",
+          model: "branchStock",
+          populate:{
+            path: "stockId",
+            model: "Stock"
+          }
+        }
+      }).populate({
+      path: "recipientId",
+      model: "users",
+      select: "-password -roleId",
+    });
     res.status(200).json({
       statusCode: res.statusCode,
       message: "successfully",
@@ -145,7 +163,7 @@ exports.updatePaymentSale = async (req, res, next) => {
     objOldSale.balance = objOldSale.salesValue - objOldSale.received;
     objOldSale.profit =
       objOldSale.received -
-      (objOldSale.salesQuantity * objOldSale.branchStockId.stockId.unitsCost);
+      objOldSale.salesQuantity * objOldSale.branchStockId.stockId.unitsCost;
 
     // return payment sale
     objpaymentSaleModel.recived -= objpaymentSaleModel.amount;
@@ -180,8 +198,8 @@ exports.updatePaymentSale = async (req, res, next) => {
     objNewSale.received += body.amount;
     objNewSale.balance = objNewSale.salesValue - objNewSale.received;
     objNewSale.profit =
-    objNewSale.received -
-    (objNewSale.salesQuantity * objNewSale.branchStockId.stockId.unitsCost);
+      objNewSale.received -
+      objNewSale.salesQuantity * objNewSale.branchStockId.stockId.unitsCost;
     await Promise.all([
       objOldSale.save(),
       objpaymentSaleModel.save(),
@@ -200,7 +218,7 @@ exports.updatePaymentSale = async (req, res, next) => {
 
 // Delete Sale
 exports.deletePaymentSale = async (req, res) => {
-  const paymentSaleId = req.params.id
+  const paymentSaleId = req.params.id;
   try {
     const objpaymentSaleModel = await paymentSaleModel.findById(paymentSaleId);
     if (!objpaymentSaleModel) {
@@ -225,13 +243,12 @@ exports.deletePaymentSale = async (req, res) => {
     objOldSale.balance = objOldSale.salesValue - objOldSale.received;
     objOldSale.profit =
       objOldSale.received -
-      (objOldSale.salesQuantity * objOldSale.branchStockId.stockId.unitsCost);
+      objOldSale.salesQuantity * objOldSale.branchStockId.stockId.unitsCost;
 
-
-      await Promise.all([
-        paymentSaleModel.deleteOne({_id:paymentSaleId}),
-        objOldSale.save(),
-      ]);
+    await Promise.all([
+      paymentSaleModel.deleteOne({ _id: paymentSaleId }),
+      objOldSale.save(),
+    ]);
 
     res.status(201).json({
       statusCode: res.statusCode,

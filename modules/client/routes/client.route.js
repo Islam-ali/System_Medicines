@@ -8,6 +8,8 @@ router.get('/getAllClient' , verifyToken, checkPermission('user.create'),client.
 
 router.get('/getClientsByTypeOfClientId/:typeOfClientId' , verifyToken, checkPermission('user.create'),client.getClientsByTypeOfClientId);
 
+router.get('/getClientById/:id' , verifyToken, checkPermission('user.create'),client.getClientById);
+
 router.post('/createClient' , verifyToken , checkPermission('user.create') ,validateclient, client.createClient);
 
 router.put('/updateClient/:id' , verifyToken , checkPermission('user.create'),validateclient , client.updateClient);

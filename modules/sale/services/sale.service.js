@@ -1,6 +1,7 @@
 const saleModel = require("../model/sale.model");
 const branchStockModel = require("../../branchStock/model/branchStock.model");
 const stockModel = require("../../stock/model/stock.model");
+const paymentSaleModel = require("../../paymentSale/model/paymentSale.model");
 const { validationResult } = require("express-validator");
 const convertArray = require("../../../core/shared/errorForm");
 
@@ -256,7 +257,7 @@ exports.updateSale = async (req, res, next) => {
       // objSale.received = payment;
       objSale.pharmacyPrice = pharmacyPrice;
       objSale.salesValue = salesValue;
-      // objSale.balance = salesValue - payment;
+      objSale.balance = salesValue - objSale.received;
       objSale.netProfit = netProfit;
       objSale.totalNetProfit = totalNetProfit;
 
@@ -331,10 +332,10 @@ exports.deleteSale = async (req, res) => {
     // update stock
     objStock.unitsNumber = objStock.unitsNumber + objSale.salesQuantity;
     objStock.totalcost = objStock.unitsNumber * objStock.unitsCost;
-
     await saleModel.deleteOne(filter).then(async (deletedSale) => {
       await objBranchStock.save();
       await objStock.save();
+      await paymentSaleModel.deleteMany({saleId: objSale._id });  
     })
     .catch((error) => {
       res.status(400).json({

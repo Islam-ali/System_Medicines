@@ -159,12 +159,14 @@ exports.updatePaymentSale = async (req, res, next) => {
           model: "Stock",
         },
       });
-    objOldSale.received -= objpaymentSaleModel.amount;
-    objOldSale.balance = objOldSale.salesValue - objOldSale.received;
-    objOldSale.profit =
+      
+      objOldSale.received -= objpaymentSaleModel.amount;
+      objOldSale.balance = objOldSale.salesValue - objOldSale.received;
+      objOldSale.profit =
       objOldSale.received -
       objOldSale.salesQuantity * objOldSale.branchStockId.stockId.unitsCost;
-
+      
+      // return res.json({received:objOldSale.received , amount:objpaymentSaleModel.amount})
     // return payment sale
     objpaymentSaleModel.recived -= objpaymentSaleModel.amount;
     objpaymentSaleModel.balance =
@@ -182,7 +184,7 @@ exports.updatePaymentSale = async (req, res, next) => {
     objpaymentSaleModel.date = body.date;
     objpaymentSaleModel.note = body.note;
     let objNewSale = {};
-    if (objOldSale._id !== objpaymentSaleModel.saleId) {
+    if (objOldSale._id.toString() !== objpaymentSaleModel.saleId.toString()) {
       objNewSale = await saleModel.findOne({ _id: body.saleId }).populate({
         path: "branchStockId",
         model: "branchStock",
@@ -201,7 +203,6 @@ exports.updatePaymentSale = async (req, res, next) => {
       objNewSale.received -
       objNewSale.salesQuantity * objNewSale.branchStockId.stockId.unitsCost;
     await Promise.all([
-      objOldSale.save(),
       objpaymentSaleModel.save(),
       objNewSale.save(),
     ]);

@@ -40,6 +40,27 @@ exports.getAllClient = async (req, res, next) => {
   }
 };
 
+exports.getClientById = async (req, res, next) => {
+  try {
+    const client = await clientModel.findOne({_id:req.params.id}).populate({
+      path: "cityId",
+      model: "city",
+      populate: {
+        path: "governmentId",
+        model: "government",
+      },
+    })
+    res.status(200).json({
+      statusCode: res.statusCode,
+      message: "successfully",
+      data: client,
+    });
+  } catch (error) {
+    res
+      .status(500)
+      .json({ statusCode: res.statusCode, message: error.message });
+  }
+};
 
 exports.getClientsByTypeOfClientId = async (req, res) => {
   try {

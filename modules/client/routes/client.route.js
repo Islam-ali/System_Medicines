@@ -16,5 +16,11 @@ router.put('/updateClient/:id' , verifyToken , checkPermission('user.create'),va
 
 router.delete('/deleteClient/:id' , verifyToken , checkPermission('user.create') , client.deleteClient);
 
+router.get(
+  "/getLogClient",
+  verifyToken,
+  checkPermission("user.create"),
+  client.getLogClient
+);
 
 module.exports = router;

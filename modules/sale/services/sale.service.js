@@ -1,30 +1,35 @@
 const saleModel = require("../model/sale.model");
 const branchStockModel = require("../../branchStock/model/branchStock.model");
 const stockModel = require("../../stock/model/stock.model");
+const logClientModel = require("../../log-client/model/log-client.model");
 const paymentSaleModel = require("../../paymentSale/model/paymentSale.model");
 const { validationResult } = require("express-validator");
 const convertArray = require("../../../core/shared/errorForm");
+const methodTypeEnum = require("../../../core/enums/methoType.enum");
+const typeLogClientEnum = require("../../../core/enums/typeLogClient.enum");
 
 // get All type of Factories
 exports.getAllSale = async (req, res, next) => {
   try {
-    const allSale = await saleModel.find().populate({
-      path: "userId",
-      model: "users",
-      select: "-password -roleId",
-    })
-    .populate({
-      path: "branchStockId",
-      model: "branchStock",
-      populate:{
-        path: "stockId",
-        model: "Stock"
-      }
-    })
-    .populate({
-      path: "clientId",
-      model: "client",
-    });
+    const allSale = await saleModel
+      .find()
+      .populate({
+        path: "userId",
+        model: "users",
+        select: "-password -roleId",
+      })
+      .populate({
+        path: "branchStockId",
+        model: "branchStock",
+        populate: {
+          path: "stockId",
+          model: "Stock",
+        },
+      })
+      .populate({
+        path: "clientId",
+        model: "client",
+      });
     res.status(200).json({
       statusCode: res.statusCode,
       message: "successfully",
@@ -40,23 +45,25 @@ exports.getAllSale = async (req, res, next) => {
 // get All type of Factories
 exports.getAllSalesByClientId = async (req, res, next) => {
   try {
-    const allSale = await saleModel.find({clientId:req.params.clientId}).populate({
-      path: "userId",
-      model: "users",
-      select: "-password -roleId",
-    })
-    .populate({
-      path: "branchStockId",
-      model: "branchStock",
-      populate:{
-        path: "stockId",
-        model: "Stock"
-      }
-    })
-    .populate({
-      path: "clientId",
-      model: "client",
-    });
+    const allSale = await saleModel
+      .find({ clientId: req.params.clientId })
+      .populate({
+        path: "userId",
+        model: "users",
+        select: "-password -roleId",
+      })
+      .populate({
+        path: "branchStockId",
+        model: "branchStock",
+        populate: {
+          path: "stockId",
+          model: "Stock",
+        },
+      })
+      .populate({
+        path: "clientId",
+        model: "client",
+      });
     res.status(200).json({
       statusCode: res.statusCode,
       message: "successfully",
@@ -160,12 +167,29 @@ exports.createSale = async (req, res, next) => {
     objBranchStock.unitsNumber -= body.salesQuantity;
 
     // update stock
-    const objStock = await stockModel.findOne({_id:objBranchStock.stockId}); 
+    const objStock = await stockModel.findOne({ _id: objBranchStock.stockId });
 
     objStock.unitsNumber -= body.salesQuantity;
     objStock.totalcost = objStock.unitsNumber * objStock.unitsCost;
 
-    await Promise.all([newSale.save(), objBranchStock.save(), objStock.save()]);
+    await Promise.all([
+      newSale.save(),
+      objBranchStock.save(),
+      objStock.save(),
+    ]).then(async (result) => {
+      const objLogClient = {
+        clientId: result[0].clientId,
+        saleId: result[0]._id,
+        creationBy: req.userId,
+        beforUpdateSale: null,
+        afterUpdateSale: null,
+        insertData: result[0],
+        type: typeLogClientEnum.SALE,
+        methodName: methodTypeEnum.CREATE,
+        creationDate: new Date(),
+      };
+      await logClientModel.create(objLogClient);
+    });
 
     res.status(201).json({
       statusCode: res.statusCode,
@@ -195,14 +219,13 @@ exports.updateSale = async (req, res, next) => {
   }
   try {
     const objSale = await saleModel.findById(saleId);
-
     if (!objSale) {
       return res.status(404).json({
         statusCode: res.statusCode,
         message: "Sale not found",
       });
     }
-
+    const CopyObjSale = JSON.parse(JSON.stringify(objSale));
     const objBranchStock = await branchStockModel
       .findOne({
         userId: body.userId,
@@ -223,9 +246,10 @@ exports.updateSale = async (req, res, next) => {
         message: "Branch stock not found",
       });
     }
-    const objStock = await stockModel.findOne({_id:objBranchStock.stockId}); 
+    const objStock = await stockModel.findOne({ _id: objBranchStock.stockId });
     // update branch stock
-    objBranchStock.unitsNumber = objBranchStock.unitsNumber + objSale.salesQuantity;
+    objBranchStock.unitsNumber =
+      objBranchStock.unitsNumber + objSale.salesQuantity;
 
     // update stock
     objStock.unitsNumber = objStock.unitsNumber + objSale.salesQuantity;
@@ -238,38 +262,55 @@ exports.updateSale = async (req, res, next) => {
       });
     }
     // Perform calculations
-    const pharmacyPrice = ((100 - body.discount) / 100) * objBranchStock.publicPrice;
+    const pharmacyPrice =
+      ((100 - body.discount) / 100) * objBranchStock.publicPrice;
     // const payment = objSale.payment;
     const salesValue = pharmacyPrice * body.salesQuantity;
     const netProfit = pharmacyPrice - objStock.unitsCost;
     const totalNetProfit = netProfit * body.salesQuantity;
 
     // update Sale
-      objSale.branchStockId = body.branchStockId;
-      objSale.clientId = body.clientId;
-      objSale.userId = body.userId,
-      objSale.date = body.date;
-      objSale.discount = body.discount || 0;
-      objSale.bouns = body.bouns || 0;
-      objSale.salesQuantity = body.salesQuantity;
-      // objSale.payment = payment;
-      // calculates
-      // objSale.received = payment;
-      objSale.pharmacyPrice = pharmacyPrice;
-      objSale.salesValue = salesValue;
-      objSale.balance = salesValue - objSale.received;
-      objSale.netProfit = netProfit;
-      objSale.totalNetProfit = totalNetProfit;
+    objSale.branchStockId = body.branchStockId;
+    objSale.clientId = body.clientId;
+    (objSale.userId = body.userId), (objSale.date = body.date);
+    objSale.discount = body.discount || 0;
+    objSale.bouns = body.bouns || 0;
+    objSale.salesQuantity = body.salesQuantity;
+    // objSale.payment = payment;
+    // calculates
+    // objSale.received = payment;
+    objSale.pharmacyPrice = pharmacyPrice;
+    objSale.salesValue = salesValue;
+    objSale.balance = salesValue - objSale.received;
+    objSale.netProfit = netProfit;
+    objSale.totalNetProfit = totalNetProfit;
 
     // update branch stock
-    objBranchStock.unitsNumber = objBranchStock.unitsNumber - body.salesQuantity;
+    objBranchStock.unitsNumber =
+      objBranchStock.unitsNumber - body.salesQuantity;
 
     // update stock
     objStock.unitsNumber = objStock.unitsNumber - body.salesQuantity;
     objStock.totalcost = objStock.unitsNumber * objStock.unitsCost;
 
     // Save the updated sale
-    await Promise.all([objSale.save(), objBranchStock.save(), objStock.save()]);
+    await Promise.all([
+      objSale.save(),
+      objBranchStock.save(),
+      objStock.save(),
+    ]).then(async (result) => {
+      const objLogClient = {
+        clientId: result[0].clientId,
+        saleId: result[0]._doc,
+        creationBy: req.userId,
+        beforUpdateSale: CopyObjSale,
+        afterUpdateSale: result[0]._doc,
+        type: typeLogClientEnum.SALE,
+        methodName: methodTypeEnum.UPDATE,
+        creationDate: new Date(),
+      };
+      await logClientModel.create(objLogClient);
+    });
 
     res.status(201).json({
       statusCode: res.statusCode,
@@ -286,29 +327,33 @@ exports.updateSale = async (req, res, next) => {
 exports.deleteSale = async (req, res) => {
   try {
     const filter = { _id: req.params.id };
-    const objSale = await saleModel.findOne(filter).populate({
-      path: "userId",
-      model: "users",
-      select: "-password -roleId",
-    })
-    .populate({
-      path: "branchStockId",
-      model: "branchStock",
-      populate:{
-        path: "stockId",
-        model: "Stock"
-      }
-    })
-    .populate({
-      path: "clientId",
-      model: "client",
-    });
+    const objSale = await saleModel
+      .findOne(filter)
+      .populate({
+        path: "userId",
+        model: "users",
+        select: "-password -roleId",
+      })
+      .populate({
+        path: "branchStockId",
+        model: "branchStock",
+        populate: {
+          path: "stockId",
+          model: "Stock",
+        },
+      })
+      .populate({
+        path: "clientId",
+        model: "client",
+      });
     if (!objSale) {
       return res.status(404).json({
         statusCode: res.statusCode,
         message: "Not Found Sale",
       });
     }
+    const CopyObjSale = JSON.parse(JSON.stringify(objSale));
+
     const userId = objSale.branchStockId.userId._id;
     const objBranchStock = await branchStockModel
       .findOne({
@@ -324,25 +369,39 @@ exports.deleteSale = async (req, res) => {
         path: "stockId",
         model: "Stock",
       });
-      
-      const objStock = await stockModel.findOne({_id:objBranchStock.stockId}); 
+
+    const objStock = await stockModel.findOne({ _id: objBranchStock.stockId });
     // update branch stock
-    objBranchStock.unitsNumber = objBranchStock.unitsNumber + objSale.salesQuantity;
+    objBranchStock.unitsNumber =
+      objBranchStock.unitsNumber + objSale.salesQuantity;
 
     // update stock
     objStock.unitsNumber = objStock.unitsNumber + objSale.salesQuantity;
     objStock.totalcost = objStock.unitsNumber * objStock.unitsCost;
-    await saleModel.deleteOne(filter).then(async (deletedSale) => {
-      await objBranchStock.save();
-      await objStock.save();
-      await paymentSaleModel.deleteMany({saleId: objSale._id });  
-    })
-    .catch((error) => {
-      res.status(400).json({
-        statusCode: res.statusCode,
-        message: "failed",
+    await saleModel
+      .deleteOne(filter)
+      .then(async (deletedSale) => {
+        await objBranchStock.save();
+        await objStock.save();
+        await paymentSaleModel.deleteMany({ saleId: objSale._id });
+        const objLogClient = {
+          clientId: result[0].clientId,
+          saleId: result[0]._id,
+          creationBy: req.userId,
+          beforUpdateSale: CopyObjSale,
+          afterUpdateSale: null,
+          type: typeLogClientEnum.SALE,
+          methodName: methodTypeEnum.DELETE,
+          creationDate: new Date(),
+        };
+        await logClientModel.create(objLogClient);
+      })
+      .catch((error) => {
+        res.status(400).json({
+          statusCode: res.statusCode,
+          message: "failed",
+        });
       });
-    });
     res.status(201).json({
       statusCode: res.statusCode,
       message: "deleted Sale successfully",

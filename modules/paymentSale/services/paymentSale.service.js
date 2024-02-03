@@ -1,10 +1,12 @@
 const paymentSaleModel = require("../model/paymentSale.model");
 const saleModel = require("../../sale/model/sale.model");
-const branchStockModel = require("../../branchStock/model/branchStock.model");
-const stockModel = require("../../stock/model/stock.model");
+const logClientModel = require("../../log-client/model/log-client.model");
 const { validationResult } = require("express-validator");
 const convertArray = require("../../../core/shared/errorForm");
 const UserRole = require("../../../core/enums/role.enum");
+const methodTypeEnum = require("../../../core/enums/methoType.enum");
+const typeLogClientEnum = require("../../../core/enums/typeLogClient.enum");
+
 // get All type of Factories
 exports.getAllPaymentSale = async (req, res, next) => {
   const userId = req.userId;
@@ -15,30 +17,31 @@ exports.getAllPaymentSale = async (req, res, next) => {
   if (!isAllow) {
     query["saleId.userId"] = userId;
   }
-  clientId ? matchSale["clientId"] = clientId : null;
+  clientId ? (matchSale["clientId"] = clientId) : null;
   try {
     const allPaymentSale = await paymentSaleModel
       .find(query)
       .populate({
-        path: 'saleId',
-        match: matchSale,
-        populate:{
+        path: "saleId",
+        // match: matchSale,
+        populate: {
           path: "branchStockId",
           model: "branchStock",
-          populate:{
+          populate: {
             path: "stockId",
-            model: "Stock"
-          }
-        }
-      }).populate({
-      path: "recipientId",
-      model: "users",
-      select: "-password -roleId",
-    });
+            model: "Stock",
+          },
+        },
+      })
+      .populate({
+        path: "recipientId",
+        model: "users",
+        select: "-password -roleId",
+      });
     res.status(200).json({
       statusCode: res.statusCode,
       message: "successfully",
-      data: allPaymentSale,
+      data: allPaymentSale.filter((item) => item.saleId.clientId == clientId),
     });
   } catch (error) {
     res
@@ -110,7 +113,21 @@ exports.createPaymentSale = async (req, res, next) => {
       note: body.note,
     });
 
-    await Promise.all([newPaymentSale.save(), objSale.save()]);
+    await Promise.all([newPaymentSale.save(), objSale.save()]).then(
+      async (result) => {
+        const objLogClient = {
+          clientId: objSale.clientId,
+          paymentSaleId: result[0]._id,
+          creationBy: req.userId,
+          beforUpdatePaymentSale: null,
+          afterUpdatePaymentSale: result[0]._doc,
+          type: typeLogClientEnum.PAYMENTSALE,
+          methodName: methodTypeEnum.CREATE,
+          creationDate: new Date(),
+        };
+        await logClientModel.create(objLogClient);
+      }
+    );
 
     res.status(201).json({
       statusCode: res.statusCode,
@@ -140,13 +157,27 @@ exports.updatePaymentSale = async (req, res, next) => {
     });
   }
   try {
-    const objpaymentSaleModel = await paymentSaleModel.findById(paymentSaleId);
+    const objpaymentSaleModel = await paymentSaleModel
+      .findById(paymentSaleId)
+      .populate({
+        path: "saleId",
+        model: "sale",
+        populate: {
+          path: "branchStockId",
+          model: "branchStock",
+          populate: {
+            path: "stockId",
+            model: "Stock",
+          },
+        },
+      });
     if (!objpaymentSaleModel) {
       return res.status(404).json({
         statusCode: res.statusCode,
         message: "Sale not found",
       });
     }
+    const CopyObjPaymentSale = JSON.parse(JSON.stringify(objpaymentSaleModel));
 
     //return sale
     const objOldSale = await saleModel
@@ -159,14 +190,14 @@ exports.updatePaymentSale = async (req, res, next) => {
           model: "Stock",
         },
       });
-      
-      objOldSale.received -= objpaymentSaleModel.amount;
-      objOldSale.balance = objOldSale.salesValue - objOldSale.received;
-      objOldSale.profit =
+
+    objOldSale.received -= objpaymentSaleModel.amount;
+    objOldSale.balance = objOldSale.salesValue - objOldSale.received;
+    objOldSale.profit =
       objOldSale.received -
       objOldSale.salesQuantity * objOldSale.branchStockId.stockId.unitsCost;
-      
-      // return res.json({received:objOldSale.received , amount:objpaymentSaleModel.amount})
+
+    // return res.json({received:objOldSale.received , amount:objpaymentSaleModel.amount})
     // return payment sale
     objpaymentSaleModel.recived -= objpaymentSaleModel.amount;
     objpaymentSaleModel.balance =
@@ -202,10 +233,21 @@ exports.updatePaymentSale = async (req, res, next) => {
     objNewSale.profit =
       objNewSale.received -
       objNewSale.salesQuantity * objNewSale.branchStockId.stockId.unitsCost;
-    await Promise.all([
-      objpaymentSaleModel.save(),
-      objNewSale.save(),
-    ]);
+    await Promise.all([objpaymentSaleModel.save(), objNewSale.save()]).then(
+      async (result) => {
+        const objLogClient = {
+          clientId: objOldSale.clientId,
+          paymentSaleId: result[0]._id,
+          creationBy: req.userId,
+          beforUpdatePaymentSale: CopyObjPaymentSale,
+          afterUpdatePaymentSale: result[0]._doc,
+          type: typeLogClientEnum.PAYMENTSALE,
+          methodName: methodTypeEnum.UPDATE,
+          creationDate: new Date(),
+        };
+        await logClientModel.create(objLogClient);
+      }
+    );
     res.status(201).json({
       statusCode: res.statusCode,
       message: "Update Sale successfully",
@@ -221,13 +263,27 @@ exports.updatePaymentSale = async (req, res, next) => {
 exports.deletePaymentSale = async (req, res) => {
   const paymentSaleId = req.params.id;
   try {
-    const objpaymentSaleModel = await paymentSaleModel.findById(paymentSaleId);
+    const objpaymentSaleModel = await paymentSaleModel
+      .findById(paymentSaleId)
+      .populate({
+        path: "saleId",
+        model: "sale",
+        populate: {
+          path: "branchStockId",
+          model: "branchStock",
+          populate: {
+            path: "stockId",
+            model: "Stock",
+          },
+        },
+      });
     if (!objpaymentSaleModel) {
       return res.status(404).json({
         statusCode: res.statusCode,
         message: "Sale not found",
       });
     }
+    const CopyObjPaymentSale = JSON.parse(JSON.stringify(objpaymentSaleModel));
 
     //return sale
     const objOldSale = await saleModel
@@ -249,7 +305,19 @@ exports.deletePaymentSale = async (req, res) => {
     await Promise.all([
       paymentSaleModel.deleteOne({ _id: paymentSaleId }),
       objOldSale.save(),
-    ]);
+    ]).then(async (result) => {
+      const objLogClient = {
+        clientId: objpaymentSaleModel.saleId.clientId,
+        paymentSaleId: result[0]._id,
+        creationBy: req.userId,
+        beforUpdatePaymentSale: CopyObjPaymentSale,
+        afterUpdatePaymentSale: null,
+        type: typeLogClientEnum.PAYMENTSALE,
+        methodName: methodTypeEnum.DELETE,
+        creationDate: new Date(),
+      };
+      await logClientModel.create(objLogClient);
+    });
 
     res.status(201).json({
       statusCode: res.statusCode,

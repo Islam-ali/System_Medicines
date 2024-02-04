@@ -11,6 +11,19 @@ router.post('/createPaymentForFactory', verifyToken  , validatePaymentForFactory
 // Get all factories
 router.get('/getAllPaymentForFactories', verifyToken  ,PaymentForFactoryService.getAllPaymentForFactories);
 
+// total CashAmount And Balance Payment Factory
+router.get(
+  "/getTotalCashAmountAndBalanceByMonthPaymentFactory",
+  verifyToken,
+  PaymentForFactoryService.totalCashAmountAndBalanceByMonthPaymentFactory
+);
+
+// total CashAmount And Balance Payment Factory
+router.get(
+  "/getTotalCashAmountAndBalanceByYearPaymentFactory",
+  verifyToken,
+  PaymentForFactoryService.totalCashAmountAndBalanceByYearPaymentFactory
+);
 // get All Payment For Our Request
 router.get('/getAllPaymentForOurRequest', verifyToken  ,PaymentForFactoryService.getAllPaymentForOurRequest);
 

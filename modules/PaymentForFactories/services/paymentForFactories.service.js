@@ -6,6 +6,155 @@ const calculatePaymentFactory = require("../../../core/shared/calculatePaymentFa
 const { validationResult } = require("express-validator");
 const mongoose = require("mongoose");
 
+exports.totalCashAmountAndBalanceByMonthPaymentFactory = async (req, res) => {
+  let currentMonth = new Date().getMonth().toString().padStart(2, "0");
+  let currentYear = new Date().getFullYear();
+  try {
+    const classificationId = req.query.classificationId;
+
+    const totals = await PaymentForFactory.aggregate([
+      {
+        $lookup: {
+          from: "ourrequests",
+          localField: "ourRequestId",
+          foreignField: "_id",
+          as: "ourRequestId",
+        },
+      },
+      { $unwind: "$ourRequestId" },
+      {
+        $lookup: {
+          from: "factories",
+          localField: "ourRequestId.factoryId",
+          foreignField: "_id",
+          as: "factoryId",
+        },
+      },
+      { $unwind: "$factoryId" },
+      {
+        $lookup: {
+          from: "typeoffactories",
+          localField: "factoryId.typeOfFactoryId",
+          foreignField: "_id",
+          as: "typeOfFactoryId",
+        },
+      },
+      { $unwind: "$typeOfFactoryId" },
+      {
+        $match: {
+          "typeOfFactoryId.classificationId": parseInt(classificationId),
+        },
+      },
+      {
+        $match: {
+          cashDate: {
+            $gte: new Date(`${currentYear}-${currentMonth}-01`),
+            $lt: new Date(`${currentYear}-${currentMonth + 1}-01`),
+          },
+        },
+      },
+      {
+        $group: {
+          _id: `${currentYear}-${currentMonth}-01`,
+          totalCashAmount: { $sum: "$cashAmount" },
+          totalBalance: { $sum: "$balance" },
+        },
+      },
+    ]);
+    const objMap = {
+      date: totals.length > 0 ? totals[0]._id : null,
+      totalCashAmount: totals.length > 0 ? totals[0].totalCashAmount : 0,
+      totalBalance: totals.length > 0 ? totals[0].totalBalance : 0,
+    };
+    res.status(200).json({
+      statusCode: res.statusCode,
+      message: "successfully",
+      data: objMap,
+    });
+  } catch (error) {
+    await session.abortTransaction();
+    session.endSession();
+    res.status(500).json({ message: error.message });
+  }
+};
+
+exports.totalCashAmountAndBalanceByYearPaymentFactory = async (req, res) => {
+  let currentYear = new Date().getFullYear();
+  try {
+    const classificationId = req.query.classificationId;
+
+    const totals = await PaymentForFactory.aggregate([
+      {
+        $lookup: {
+          from: "ourrequests",
+          localField: "ourRequestId",
+          foreignField: "_id",
+          as: "ourRequestId",
+        },
+      },
+      { $unwind: "$ourRequestId" },
+      {
+        $lookup: {
+          from: "factories",
+          localField: "ourRequestId.factoryId",
+          foreignField: "_id",
+          as: "factoryId",
+        },
+      },
+      { $unwind: "$factoryId" },
+      {
+        $lookup: {
+          from: "typeoffactories",
+          localField: "factoryId.typeOfFactoryId",
+          foreignField: "_id",
+          as: "typeOfFactoryId",
+        },
+      },
+      { $unwind: "$typeOfFactoryId" },
+      {
+        $match: {
+          "typeOfFactoryId.classificationId": parseInt(classificationId),
+        },
+      },
+      {
+        $match: {
+          cashDate: {
+            $gte: new Date(`${currentYear}-01-01`),
+            $lt: new Date(`${currentYear + 1}-01-01`),
+          },
+        },
+      },
+      {
+        $group: {
+          _id: { $year: "$cashDate" }, // Group by year
+          totalCashAmount: { $sum: "$cashAmount" },
+          totalBalance: { $sum: "$balance" },
+        },
+      },
+      {
+        $group: {
+          _id: null, // Group to calculate grand totals
+          totalsByYear: { $push: "$$ROOT" }, // Store yearly totals in an array
+          grandTotalCashAmount: { $sum: "$totalCashAmount" },
+          grandTotalBalance: { $sum: "$totalBalance" },
+        },
+      },
+    ]);
+    const objMap = {
+      totalCashAmount: totals.length > 0 ? totals[0].grandTotalCashAmount : 0,
+      totalBalance: totals.length > 0 ? totals[0].grandTotalBalance : 0,
+    };
+    res.status(200).json({
+      statusCode: res.statusCode,
+      message: "successfully",
+      data: objMap,
+    });
+  } catch (error) {
+    await session.abortTransaction();
+    session.endSession();
+    res.status(500).json({ message: error.message });
+  }
+};
 // Create a new PaymentForFactory
 exports.createPaymentForFactory = async (req, res) => {
   let session = await mongoose.startSession();
@@ -132,7 +281,7 @@ exports.getAllPaymentForFactories = async (req, res) => {
         },
       },
     ]);
-    
+
     res.status(200).json({
       statusCode: res.statusCode,
       message: "successfully",
@@ -183,12 +332,12 @@ exports.getAllPaymentForOurRequest = async (req, res) => {
       listOfUniqueOurRequests[index].listOfPayments = filter;
     });
 
-    return res.json({ listOfUniqueOurRequests });
+    // return res.json({ listOfUniqueOurRequests });
 
     res.status(200).json({
       statusCode: res.statusCode,
       message: "successfully",
-      data: PaymentForFactories,
+      data: listOfUniqueOurRequests,
     });
   } catch (error) {
     res.status(500).json({ message: error.message });

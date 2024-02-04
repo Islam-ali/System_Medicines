@@ -97,20 +97,42 @@ exports.createPaymentForFactory = async (req, res) => {
 // get All Payment For Factories
 exports.getAllPaymentForFactories = async (req, res) => {
   try {
-    const PaymentForFactories = await PaymentForFactory.find({}).populate({
-      path: "ourRequestId",
-      populate: {
-        path: "itemFactoryId",
-        model: "ItemsFactory",
-        select: "name -_id",
-        populate: {
-          path: "factoryId",
-          model: "Factory",
-          select: "name -_id",
+    const classificationId = req.query.classificationId;
+    const PaymentForFactories = await PaymentForFactory.aggregate([
+      {
+        $lookup: {
+          from: "ourrequests",
+          localField: "ourRequestId",
+          foreignField: "_id",
+          as: "ourRequestId",
         },
       },
-    });
-
+      { $unwind: "$ourRequestId" },
+      {
+        $lookup: {
+          from: "factories",
+          localField: "ourRequestId.factoryId",
+          foreignField: "_id",
+          as: "factoryId",
+        },
+      },
+      { $unwind: "$factoryId" },
+      {
+        $lookup: {
+          from: "typeoffactories",
+          localField: "factoryId.typeOfFactoryId",
+          foreignField: "_id",
+          as: "typeOfFactoryId",
+        },
+      },
+      { $unwind: "$typeOfFactoryId" },
+      {
+        $match: {
+          "typeOfFactoryId.classificationId": parseInt(classificationId),
+        },
+      },
+    ]);
+    
     res.status(200).json({
       statusCode: res.statusCode,
       message: "successfully",
@@ -182,7 +204,7 @@ exports.getPaymentByFactoryId = async (req, res) => {
         path: "itemFactoryId",
         model: "ItemsFactory",
         match: { factoryId: req.params.factoryId },
-        select: "name -_id"
+        select: "name -_id",
       },
     });
     if (listOfPaymentByFactoryId.length == 0) {
@@ -258,7 +280,6 @@ exports.updatePaymentForFactory = async (req, res) => {
     });
   }
   try {
-
     const filterPaymentForFactoryId = { _id: req.params.id };
     const { ourRequestId, cashAmount } = req.body;
 
@@ -302,17 +323,15 @@ exports.updatePaymentForFactory = async (req, res) => {
     });
 
     const filter = { _id: ourRequestId };
-    const updateDocument = {$set: { wasPaid: 0 }};
+    const updateDocument = { $set: { wasPaid: 0 } };
     let newObjourRequest = {};
     let increaseWasPaid = 0;
-    
-    
+
     // update Our Request all Waspaid = 0
     await ourRequest.updateMany(filter, updateDocument);
     newObjourRequest = await ourRequest.findOne({
       _id: ourRequestId,
     });
-
 
     const listOfPaymentForFactories = await PaymentForFactory.find({
       ourRequestId: objPaymentForFactory.ourRequestId._id,
@@ -332,10 +351,13 @@ exports.updatePaymentForFactory = async (req, res) => {
         newObjourRequest.totalcost,
         newObjourRequest.wasPaid
       );
-      
-      await PaymentForFactory.updateOne({_id:item._id}, {
-        $set: { balance: newBalance },
-      });
+
+      await PaymentForFactory.updateOne(
+        { _id: item._id },
+        {
+          $set: { balance: newBalance },
+        }
+      );
     }
 
     newObjourRequest = await ourRequest.findOne(filter);
@@ -346,7 +368,6 @@ exports.updatePaymentForFactory = async (req, res) => {
       newObjourRequest.totalcost,
       newObjourRequest.wasPaid
     );
-
 
     // create Factory Account Log
     const logData = {

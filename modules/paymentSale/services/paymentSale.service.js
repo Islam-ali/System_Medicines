@@ -11,11 +11,15 @@ const typeLogClientEnum = require("../../../core/enums/typeLogClient.enum");
 exports.getAllPaymentSale = async (req, res, next) => {
   const userId = req.userId;
   const clientId = req.query.clientId;
+  const saleId = req.query.saleId;
   const isAllow = req.roleName == UserRole.ADMIN;
   let query = {};
   let matchSale = {};
   if (!isAllow) {
     query["saleId.userId"] = userId;
+  }
+  if(saleId){
+    query["saleId"] = saleId;
   }
   clientId ? (matchSale["clientId"] = clientId) : null;
   try {

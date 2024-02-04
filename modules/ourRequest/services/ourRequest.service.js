@@ -6,6 +6,7 @@ const orderStatusEnum = require("../../../core/enums/OrderStatus.enum");
 const stockModel = require("../../stock/model/stock.model");
 const PaymentForFactoryModel = require("../../PaymentForFactories/model/paymentForFactories.model");
 const FactoryModel = require("../../factory/model/factory.model");
+const { json } = require("express");
 class calculate {
   constructor() {}
 
@@ -107,12 +108,34 @@ exports.createOurRequest = async (req, res) => {
 // Get all Our Request
 exports.getAllOurRequests = async (req, res) => {
   try {
-    const ourRequests = await OurRequest.find({}).populate("itemFactoryId");
-    res.status(200).json({
-      statusCode: res.statusCode,
-      message: "successfully",
-      data: ourRequests,
-    });
+    const classificationId = req.query.classificationId;
+    const ourRequests = await OurRequest.aggregate([
+      {
+        $lookup: {
+          from: "factories",
+          localField: "factoryId",
+          foreignField: "_id",
+          as: "factoryId",
+        },
+      },
+      { $unwind: "$factoryId" },
+      {
+        $lookup: {
+          from: "typeoffactories",
+          localField: "factoryId.typeOfFactoryId",
+          foreignField: "_id",
+          as: "typeOfFactoryId",
+        },
+      },
+      { $unwind: "$typeOfFactoryId" },
+      {
+        $match: {
+          "typeOfFactoryId.classificationId": parseInt(classificationId),
+        },
+      },
+    ]);
+    
+    processRequests(ourRequests, res);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -128,8 +151,9 @@ const processRequests = async (listOfOurRequests, res) => {
         path: "ourRequestId",
       });
       listOfOurRequests[i]["listOfPayments"] = PaymentForFactories;
+      let objour = JSON.parse(JSON.stringify(listOfOurRequests[i]));
       let obj = {
-        ...listOfOurRequests[i]._doc,
+        ...objour,
         listOfPayments: PaymentForFactories,
       };
       mapResponse.push(obj);
@@ -374,21 +398,19 @@ exports.changeOrderStatus = async (req, res) => {
     const classificationId =
       objOurRequest.itemFactoryId.factoryId.typeOfFactoryId.classificationId;
 
-    const stockRequest = new stockModel(
-      {
-        classificationId: classificationId,
-        ourRequestId: objOurRequest._id,
-        itemName: objOurRequest.itemName,
-        itemFactoryId: objOurRequest.itemFactoryId._id,
-        typeofFactory: objOurRequest.itemFactoryId.factoryId.typeOfFactoryId.type,
-        unitsNumber: objOurRequest.unitsNumber,
-        unitsCost: objOurRequest.unitsCost,
-        totalcost: objOurRequest.totalcost,
-        patchNumber: '', 
-        manfDate: '', 
-        expDate: '', 
-      }
-    ) 
+    const stockRequest = new stockModel({
+      classificationId: classificationId,
+      ourRequestId: objOurRequest._id,
+      itemName: objOurRequest.itemName,
+      itemFactoryId: objOurRequest.itemFactoryId._id,
+      typeofFactory: objOurRequest.itemFactoryId.factoryId.typeOfFactoryId.type,
+      unitsNumber: objOurRequest.unitsNumber,
+      unitsCost: objOurRequest.unitsCost,
+      totalcost: objOurRequest.totalcost,
+      patchNumber: "",
+      manfDate: "",
+      expDate: "",
+    });
 
     // send to Stock if (orderStatus == RECIVED)
     // const objStock = await stockModel.findOne({ourRequestId:objOurRequest._id});
@@ -446,7 +468,7 @@ exports.deleteOurRequest = async (req, res) => {
     // //   newUnitsNumber,
     // //   stock.unitsCost
     // // );
-    await stockModel.deleteOne({ourRequestId : objOurRequest._id})
+    await stockModel.deleteOne({ ourRequestId: objOurRequest._id });
     // await stockModel.updateOne(
     //   { itemFactoryId: objOurRequest.itemFactoryId },
     //   { $set: { unitsNumber: newUnitsNumber, totalcost: newTotalCost } }

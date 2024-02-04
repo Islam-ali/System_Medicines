@@ -90,7 +90,9 @@ exports.transactionToBranchStock = async (req , res) => {
     if(!objStock){
       return res.status(404).json({ message: "Stock not found" });
     }
-  
+    if (objStock.unitsNumber < unitsNumber) {
+      return res.status(400).json({ message: "units number more than stock" });
+    }
     // create new branch stock
     const newBranchStock = {};
     newBranchStock.stockId = stockId;

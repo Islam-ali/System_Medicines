@@ -1,5 +1,6 @@
 const itemsFactory = require("../model/itemsFactory.model");
 const factoryModel = require("../../factory/model/factory.model");
+const ourRequestModel = require("../../ourRequest/model/ourRequest.model");
 const convertArray = require("../../../core/shared/errorForm");
 const { validationResult } = require("express-validator");
 
@@ -62,8 +63,9 @@ exports.getItemsFactoryById = async (req, res) => {
       .findById(req.params.id)
       .populate("factoryId");
     if (!factory) {
-        
-        return res.status(404).json({statusCode: res.statusCode, message: "Item not found"  });
+      return res
+        .status(404)
+        .json({ statusCode: res.statusCode, message: "Item not found" });
     }
     res.status(200).json({
       statusCode: res.statusCode,
@@ -82,7 +84,13 @@ exports.getItemsFactoryByFactoryId = async (req, res) => {
       factoryId: req.params.factoryId,
     });
     if (!itemFactory) {
-      return res.status(404).json({statusCode: res.statusCode, message: "Item not found", data: [] });
+      return res
+        .status(404)
+        .json({
+          statusCode: res.statusCode,
+          message: "Item not found",
+          data: [],
+        });
     }
     res.status(200).json({
       statusCode: res.statusCode,
@@ -94,14 +102,13 @@ exports.getItemsFactoryByFactoryId = async (req, res) => {
   }
 };
 
-
 // Update a factory by ID
 exports.updateItemsFactory = async (req, res) => {
   const errors = validationResult(req);
   if (!req.params.id) {
     return res.status(400).json({
       statusCode: res.statusCode,
-      message: "ID Is Requierd"
+      message: "ID Is Requierd",
     });
   }
   if (!errors.isEmpty()) {
@@ -147,6 +154,22 @@ exports.deleteItemsFactory = async (req, res) => {
       return res.status(404).json({
         statusCode: res.statusCode,
         message: "Not Found Item",
+      });
+    }
+    let listOfOurRequests = await ourRequestModel
+      .find({
+        itemFactoryId: req.params.id,
+      })
+      .populate({
+        path: "itemFactoryId",
+        model: "ItemsFactory",
+        select: "name",
+      });
+    
+    if (listOfOurRequests.length > 0) {
+      return res.status(400).json({
+        statusCode: res.statusCode,
+        message: "can't deleted",
       });
     }
     await itemsFactory.deleteOne(filter);

@@ -19,8 +19,14 @@ exports.listTypeOfClient = async (req, res, next) => {
 
 // get All type of Factories
 exports.getAllClient = async (req, res, next) => {
+  let query = {};
+    const clientTypeId = req.query.clientTypeId;
+    if (clientTypeId) {
+      query["typeOfClient.id"] = parseInt(clientTypeId);
+    }
+    console.log(query);
   try {
-    const allClient = await clientModel.find({}).populate({
+    const allClient = await clientModel.find(query).populate({
       path: "cityId",
       model: "city",
       populate: {

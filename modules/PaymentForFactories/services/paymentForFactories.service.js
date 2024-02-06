@@ -7,11 +7,16 @@ const { validationResult } = require("express-validator");
 const mongoose = require("mongoose");
 
 exports.totalCashAmountAndBalanceByMonthPaymentFactory = async (req, res) => {
-  let currentMonth = new Date().getMonth().toString().padStart(2, "0");
+  let currentMonth = new Date().getMonth() + 1;
   let currentYear = new Date().getFullYear();
+  let matchClassification = {};
+  const classificationId = req.query.classificationId;
+  req.query.classificationId ? matchClassification = {
+    "typeOfFactoryId.classificationId": parseInt(classificationId),
+  } : {};
+  console.log(matchClassification);
   try {
-    const classificationId = req.query.classificationId;
-
+    
     const totals = await PaymentForFactory.aggregate([
       {
         $lookup: {
@@ -41,9 +46,7 @@ exports.totalCashAmountAndBalanceByMonthPaymentFactory = async (req, res) => {
       },
       { $unwind: "$typeOfFactoryId" },
       {
-        $match: {
-          "typeOfFactoryId.classificationId": parseInt(classificationId),
-        },
+        $match: matchClassification,
       },
       {
         $match: {
@@ -62,7 +65,7 @@ exports.totalCashAmountAndBalanceByMonthPaymentFactory = async (req, res) => {
       },
     ]);
     const objMap = {
-      date: totals.length > 0 ? totals[0]._id : null,
+      date: `${currentYear}-${currentMonth}-01`,
       totalCashAmount: totals.length > 0 ? totals[0].totalCashAmount : 0,
       totalBalance: totals.length > 0 ? totals[0].totalBalance : 0,
     };
@@ -72,8 +75,6 @@ exports.totalCashAmountAndBalanceByMonthPaymentFactory = async (req, res) => {
       data: objMap,
     });
   } catch (error) {
-    await session.abortTransaction();
-    session.endSession();
     res.status(500).json({ message: error.message });
   }
 };
@@ -141,6 +142,7 @@ exports.totalCashAmountAndBalanceByYearPaymentFactory = async (req, res) => {
       },
     ]);
     const objMap = {
+      date: currentYear,
       totalCashAmount: totals.length > 0 ? totals[0].grandTotalCashAmount : 0,
       totalBalance: totals.length > 0 ? totals[0].grandTotalBalance : 0,
     };
@@ -300,7 +302,6 @@ exports.getAllPaymentForOurRequest = async (req, res) => {
       populate: {
         path: "itemFactoryId",
         model: "ItemsFactory",
-        select: "name -_id",
         populate: {
           path: "factoryId",
           model: "Factory",
@@ -353,7 +354,6 @@ exports.getPaymentByFactoryId = async (req, res) => {
         path: "itemFactoryId",
         model: "ItemsFactory",
         match: { factoryId: req.params.factoryId },
-        select: "name -_id",
       },
     });
     if (listOfPaymentByFactoryId.length == 0) {

@@ -134,7 +134,7 @@ exports.getAllOurRequests = async (req, res) => {
         },
       },
     ]);
-    
+
     processRequests(ourRequests, res);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -270,6 +270,12 @@ exports.updateOurRequest = async (req, res) => {
         data: [],
       });
     }
+    if (objOurRequest.orderStatus == orderStatusEnum.RECIVED) {
+      return res.status(400).json({
+        statusCode: res.statusCode,
+        message: "can't update when is Recived",
+      });
+    }
     const objItemFactory = await itemsFactoryModel.findOne({
       _id: req.body.itemFactoryId,
     });
@@ -339,7 +345,7 @@ exports.updateOurRequest = async (req, res) => {
       }
     }
 
-    const filter = { _id: req.body.id };
+    const filter = { _id: req.params.id };
     const updateDocument = {
       $set: req.body,
     };
@@ -441,9 +447,18 @@ exports.deleteOurRequest = async (req, res) => {
         message: "Not Found Item",
       });
     }
-    stock = await stockModel.findOne({
-      ourRequestId: objOurRequest._id,
+    const listPaymentForFactory = await PaymentForFactoryModel.find({
+      ourRequestId: req.params.id,
     });
+    if (listPaymentForFactory.length > 0) {
+      return res.status(400).json({
+        statusCode: res.statusCode,
+        message: "can't deleted",
+      });
+    }
+    // stock = await stockModel.findOne({
+    //   ourRequestId: objOurRequest._id,
+    // });
 
     if (objOurRequest.listOfMaterials.length > 0) {
       // old stock

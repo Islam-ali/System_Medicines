@@ -1,4 +1,5 @@
 const FactoryModel = require("../model/factory.model");
+const itemsFactoryModel = require("../../itemsFactory/model/itemsFactory.model");
 const typeOfFactoryModel = require("../../typeOfFactory/model/typeOfFactory.model");
 const convertArray = require("../../../core/shared/errorForm");
 const { validationResult } = require("express-validator");
@@ -94,8 +95,8 @@ exports.getFactoriesByTypeOfFactoryId = async (req, res) => {
     });
     const objmapResponse = {
       typeOfFactoryName: objTypeOfFactory.type,
-      listOfFactories:factories
-    }
+      listOfFactories: factories,
+    };
     res.status(200).json({
       statusCode: res.statusCode,
       message: "successfully",
@@ -106,15 +107,21 @@ exports.getFactoriesByTypeOfFactoryId = async (req, res) => {
   }
 };
 
-exports.getFactoriesByClassificationId = async (req , res) => {
+exports.getFactoriesByClassificationId = async (req, res) => {
   try {
     const listOfFactoy = await FactoryModel.find().populate({
-        path: 'typeOfFactoryId',
-        match: { classificationId: req.params.classificationId }
+      path: "typeOfFactoryId",
+      match: { classificationId: req.params.classificationId },
     });
 
     if (!listOfFactoy) {
-      return res.status(404).json({statusCode: res.statusCode, message: "Item not found", data: [] });
+      return res
+        .status(404)
+        .json({
+          statusCode: res.statusCode,
+          message: "Item not found",
+          data: [],
+        });
     }
     res.status(200).json({
       statusCode: res.statusCode,
@@ -124,7 +131,7 @@ exports.getFactoriesByClassificationId = async (req , res) => {
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
-}
+};
 
 // Update a factory by ID
 exports.updateFactory = async (req, res) => {
@@ -140,12 +147,10 @@ exports.updateFactory = async (req, res) => {
   try {
     let factoryToUpdate = await FactoryModel.findOne({ _id: req.params.id });
     if (!factoryToUpdate) {
-      return res
-        .status(404)
-        .json({
-          message: "Factory not found",
-          data: [],
-        });
+      return res.status(404).json({
+        message: "Factory not found",
+        data: [],
+      });
     }
 
     factoryToUpdate.name = req.body.name || factoryToUpdate.name;
@@ -171,6 +176,15 @@ exports.deleteFactory = async (req, res) => {
       return res.status(404).json({
         statusCode: res.statusCode,
         message: "Not Found Factory",
+      });
+    }
+    const itemFactory = await itemsFactoryModel.find({
+      factoryId: req.params.id,
+    });
+    if (itemFactory.length > 0) {
+      return res.status(400).json({
+        statusCode: res.statusCode,
+        message: "can't deleted",
       });
     }
     await FactoryModel.deleteOne(filter);

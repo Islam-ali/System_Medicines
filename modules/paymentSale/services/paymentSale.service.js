@@ -6,6 +6,7 @@ const convertArray = require("../../../core/shared/errorForm");
 const UserRole = require("../../../core/enums/role.enum");
 const methodTypeEnum = require("../../../core/enums/methoType.enum");
 const typeLogClientEnum = require("../../../core/enums/typeLogClient.enum");
+const mongoose = require("mongoose");
 
 // get All type of Factories
 exports.getAllPaymentSale = async (req, res, next) => {
@@ -18,34 +19,77 @@ exports.getAllPaymentSale = async (req, res, next) => {
   if (!isAllow) {
     query["saleId.userId"] = userId;
   }
-  if(saleId){
-    query["saleId"] = saleId;
+  if (saleId) {
+    query["saleId._id"] = new mongoose.Types.ObjectId(saleId);
   }
-  clientId ? (matchSale["clientId"] = clientId) : null;
+  clientId
+    ? (matchSale["saleId.clientId"] = new mongoose.Types.ObjectId(clientId))
+    : null;
+  console.log(matchSale);
   try {
-    const allPaymentSale = await paymentSaleModel
-      .find(query)
-      .populate({
-        path: "saleId",
-        // match: matchSale,
-        populate: {
-          path: "branchStockId",
-          model: "branchStock",
-          populate: {
-            path: "stockId",
-            model: "Stock",
-          },
+    const allPaymentSale = await paymentSaleModel.aggregate([
+      {
+        $lookup: {
+          from: "sales",
+          localField: "saleId",
+          foreignField: "_id",
+          as: "saleId",
         },
-      })
-      .populate({
-        path: "recipientId",
-        model: "users",
-        select: "-password -roleId",
-      });
+      },
+      { $unwind: "$saleId" },
+      {
+        $lookup: {
+          from: "branchstocks",
+          localField: "saleId.branchStockId",
+          foreignField: "_id",
+          as: "saleId.branchStockId", // This is the additional lookup
+        },
+      },
+      { $unwind: "$saleId.branchStockId" }, // Unwind the new field
+      {
+        $lookup: {
+          from: "stocks",
+          localField: "saleId.branchStockId.stockId",
+          foreignField: "_id",
+          as: "saleId.branchStockId.stockId",
+        },
+      },
+      { $unwind: "$saleId.branchStockId.stockId" },
+      {
+        $lookup: {
+          from: "users",
+          localField: "recipientId",
+          foreignField: "_id",
+          as: "recipientId",
+        },
+      },
+      { $unwind: "$recipientId" },
+      {
+        $match: { $and: [matchSale, query] },
+      },
+    ]);
+    // .find(query)
+    // .populate({
+    //   path: "saleId",
+    //   // match: matchSale,
+    //   populate: {
+    //     path: "branchStockId",
+    //     model: "branchStock",
+    //     populate: {
+    //       path: "stockId",
+    //       model: "Stock",
+    //     },
+    //   },
+    // })
+    // .populate({
+    //   path: "recipientId",
+    //   model: "users",
+    //   select: "-password -roleId",
+    // });
     res.status(200).json({
       statusCode: res.statusCode,
       message: "successfully",
-      data: allPaymentSale.filter((item) => item.saleId.clientId == clientId),
+      data: allPaymentSale,
     });
   } catch (error) {
     res
@@ -103,9 +147,12 @@ exports.createPaymentSale = async (req, res, next) => {
 
     objSale.received += body.amount;
     objSale.balance = objSale.salesValue - objSale.received;
-    objSale.profit =
+    // objSale.profit =
+    //   objSale.received -
+    //   objSale.salesQuantity * objSale.branchStockId.stockId.unitsCost;
+    objSale.realProfit =
       objSale.received -
-      objSale.salesQuantity * objSale.branchStockId.stockId.unitsCost;
+      (objSale.salesQuantity * objSale.branchStockId.stockId.unitsCost);
 
     const newPaymentSale = new paymentSaleModel({
       saleId: body.saleId,
@@ -115,6 +162,7 @@ exports.createPaymentSale = async (req, res, next) => {
       recived: objSale.received,
       balance: objSale.salesValue - objSale.received,
       note: body.note,
+      profit: objSale.received,
     });
 
     await Promise.all([newPaymentSale.save(), objSale.save()]).then(
@@ -184,8 +232,7 @@ exports.updatePaymentSale = async (req, res, next) => {
     const CopyObjPaymentSale = JSON.parse(JSON.stringify(objpaymentSaleModel));
 
     //return sale
-    const objOldSale = await saleModel
-      .findOne({ _id: objpaymentSaleModel.saleId })
+    const objOldSale = await saleModel.findOne({ _id: objpaymentSaleModel.saleId })
       .populate({
         path: "branchStockId",
         model: "branchStock",
@@ -197,7 +244,7 @@ exports.updatePaymentSale = async (req, res, next) => {
 
     objOldSale.received -= objpaymentSaleModel.amount;
     objOldSale.balance = objOldSale.salesValue - objOldSale.received;
-    objOldSale.profit =
+    objOldSale.realProfit =
       objOldSale.received -
       objOldSale.salesQuantity * objOldSale.branchStockId.stockId.unitsCost;
 
@@ -234,9 +281,10 @@ exports.updatePaymentSale = async (req, res, next) => {
     // update sale
     objNewSale.received += body.amount;
     objNewSale.balance = objNewSale.salesValue - objNewSale.received;
-    objNewSale.profit =
+    objNewSale.realProfit =
       objNewSale.received -
       objNewSale.salesQuantity * objNewSale.branchStockId.stockId.unitsCost;
+
     await Promise.all([objpaymentSaleModel.save(), objNewSale.save()]).then(
       async (result) => {
         const objLogClient = {
@@ -302,7 +350,7 @@ exports.deletePaymentSale = async (req, res) => {
       });
     objOldSale.received -= objpaymentSaleModel.amount;
     objOldSale.balance = objOldSale.salesValue - objOldSale.received;
-    objOldSale.profit =
+    objOldSale.realProfit =
       objOldSale.received -
       objOldSale.salesQuantity * objOldSale.branchStockId.stockId.unitsCost;
 
@@ -315,7 +363,7 @@ exports.deletePaymentSale = async (req, res) => {
         paymentSaleId: result[0]._id,
         creationBy: req.userId,
         beforUpdatePaymentSale: CopyObjPaymentSale,
-        afterUpdatePaymentSale: null,
+        afterUpdatePaymentSale: result[0]._doc,
         type: typeLogClientEnum.PAYMENTSALE,
         methodName: methodTypeEnum.DELETE,
         creationDate: new Date(),

@@ -6,17 +6,19 @@ const calculatePaymentFactory = require("../../../core/shared/calculatePaymentFa
 const { validationResult } = require("express-validator");
 const mongoose = require("mongoose");
 
+
 exports.totalCashAmountAndBalanceByMonthPaymentFactory = async (req, res) => {
   let currentMonth = new Date().getMonth() + 1;
   let currentYear = new Date().getFullYear();
   let matchClassification = {};
   const classificationId = req.query.classificationId;
-  req.query.classificationId ? matchClassification = {
-    "typeOfFactoryId.classificationId": parseInt(classificationId),
-  } : {};
+  req.query.classificationId
+    ? (matchClassification = {
+        "typeOfFactoryId.classificationId": parseInt(classificationId),
+      })
+    : {};
   console.log(matchClassification);
   try {
-    
     const totals = await PaymentForFactory.aggregate([
       {
         $lookup: {
@@ -348,14 +350,36 @@ exports.getAllPaymentForOurRequest = async (req, res) => {
 // Get Payment by factoryId
 exports.getPaymentByFactoryId = async (req, res) => {
   try {
-    let listOfPaymentByFactoryId = await PaymentForFactory.find().populate({
-      path: "ourRequestId",
-      populate: {
-        path: "itemFactoryId",
-        model: "ItemsFactory",
-        match: { factoryId: req.params.factoryId },
+    const factoryId = req.params.factoryId;
+    const objectIdFactoryId = new mongoose.Types.ObjectId(factoryId);
+
+    let listOfPaymentByFactoryId = await PaymentForFactory.aggregate([
+      {
+        $lookup: {
+          from: "ourrequests",
+          localField: "ourRequestId",
+          foreignField: "_id",
+          as: "ourRequestId",
+        },
       },
-    });
+      {
+        $unwind: "$ourRequestId",
+      },
+      {
+        $lookup: {
+          from: "itemsfactories",
+          localField: "ourRequestId.itemFactoryId",
+          foreignField: "_id",
+          as: "factoryId",
+        },
+      },
+      { $unwind: "$factoryId" },
+      {
+        $match: {
+          "ourRequestId.factoryId": objectIdFactoryId,    
+        },
+      },
+    ]);
     if (listOfPaymentByFactoryId.length == 0) {
       return res
         .status(404)

@@ -53,6 +53,8 @@ app.use('/government', require('./modules/government/routes/government.route') )
 app.use('/city', require('./modules/city/routes/city.route') );
 app.use('/sales', require('./modules/sale/routes/sale.route') );
 app.use('/paymentSale', require('./modules/paymentSale/routes/paymentSale.route') );
+app.use("/profit", require("./modules/profit/routes/profit.route"));
+
 
 
 

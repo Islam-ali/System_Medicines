@@ -12,7 +12,7 @@ const typeLogClientEnum = require("../../../core/enums/typeLogClient.enum");
 exports.getAllSale = async (req, res, next) => {
   try {
     const allSale = await saleModel
-      .find()
+      .find({ deleted: false })
       .populate({
         path: "userId",
         model: "users",
@@ -45,8 +45,10 @@ exports.getAllSale = async (req, res, next) => {
 // get All type of Factories
 exports.getAllSalesByClientId = async (req, res, next) => {
   try {
-    const allSale = await saleModel
-      .find({ clientId: req.params.clientId })
+    const clientId = req.params.clientId;
+
+    const allSales = await saleModel
+      .find({ clientId, deleted: false })
       .populate({
         path: "userId",
         model: "users",
@@ -67,7 +69,7 @@ exports.getAllSalesByClientId = async (req, res, next) => {
     res.status(200).json({
       statusCode: res.statusCode,
       message: "successfully",
-      data: allSale,
+      data: allSales,
     });
   } catch (error) {
     res
@@ -162,6 +164,7 @@ exports.createSale = async (req, res, next) => {
       balance: 0,
       netProfit: netProfit,
       totalNetProfit: totalNetProfit,
+      realProfit: 0,
     });
     // update branch stock
     objBranchStock.unitsNumber -= body.salesQuantity;
@@ -283,6 +286,7 @@ exports.updateSale = async (req, res, next) => {
     objSale.balance = salesValue - objSale.received;
     objSale.netProfit = netProfit;
     objSale.totalNetProfit = totalNetProfit;
+    objSale.realProfit = objSale.received - objSale.totalNetProfit ;
 
     // update branch stock
     objBranchStock.unitsNumber =
@@ -322,7 +326,7 @@ exports.updateSale = async (req, res, next) => {
   }
 };
 
-// Delete Sale
+// Delete Sale by soft delete
 exports.deleteSale = async (req, res) => {
   try {
     const filter = { _id: req.params.id };
@@ -369,20 +373,20 @@ exports.deleteSale = async (req, res) => {
         model: "Stock",
       });
 
-    const objStock = await stockModel.findOne({ _id: objBranchStock.stockId });
+    // const objStock = await stockModel.findOne({ _id: objBranchStock.stockId });
     // update branch stock
     objBranchStock.unitsNumber =
       objBranchStock.unitsNumber + objSale.salesQuantity;
 
-    // update stock
-    objStock.unitsNumber = objStock.unitsNumber + objSale.salesQuantity;
-    objStock.totalcost = objStock.unitsNumber * objStock.unitsCost;
-    await saleModel
-      .deleteOne(filter)
-      .then(async (deletedSale) => {
-        await objBranchStock.save();
-        await objStock.save();
-        await paymentSaleModel.deleteMany({ saleId: objSale._id });
+    // // update stock
+    // objStock.unitsNumber = objStock.unitsNumber + objSale.salesQuantity;
+    // objStock.totalcost = objStock.unitsNumber * objStock.unitsCost;
+    await Promise.all([
+      saleModel.findByIdAndUpdate(req.params.id, { deleted: true }),
+      objBranchStock.save(),
+      // objStock.save(),
+      paymentSaleModel.deleteMany({ saleId: objSale._id }),
+    ]).then(async (result) => {
         const objLogClient = {
           clientId: result[0].clientId,
           saleId: result[0]._id,
@@ -395,12 +399,13 @@ exports.deleteSale = async (req, res) => {
         };
         await logClientModel.create(objLogClient);
       })
-      .catch((error) => {
-        res.status(400).json({
-          statusCode: res.statusCode,
-          message: "failed",
-        });
-      });
+      // .catch((error) => {
+      //   res.status(400).json({
+      //     statusCode: res.statusCode,
+      //     message: "failed",
+      //     error: error,
+      //   });
+      // });
     res.status(201).json({
       statusCode: res.statusCode,
       message: "deleted Sale successfully",

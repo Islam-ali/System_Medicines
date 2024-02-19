@@ -8,7 +8,7 @@ require("dotenv").config();
 var cors = require("cors");
 const { env } = require("process");
 var app = express();
-import serverless from "serverless-http";
+// import serverless from "serverless-http";
 
 
 
@@ -35,41 +35,41 @@ app.use(express.static(path.join(__dirname, "public")));
 //   res.json('hello')
 // });
 
-app.use('/auth', require('./modules/users/routes/auth.route') );
+app.use('/auth', require('./modules/users/routes/auth.route.js') );
 app.use('/roles', require('./modules/auth/routes/role.route.js') );
-app.use('/payment', require('./modules/classification/routes/classification.route') );
-app.use('/classifications', require('./modules/classification/routes/classification.route') );
-app.use('/typeOfFactory', require('./modules/typeOfFactory/routes/typeOfFactory.route') );
-app.use('/factory', require('./modules/factory/routes/factory.route') );
-app.use('/itemsFactory', require('./modules/itemsFactory/routes/itemsFactory.route') );
-app.use('/ourRequest', require('./modules/ourRequest/routes/ourRequest.route') );
-app.use('/paymentForFactory', require('./modules/PaymentForFactories/routes/paymentForFactories.route') );
-app.use('/factoryAccount', require('./modules/FactoryAccounts/routes/factoryAccount.route') );
+app.use('/payment', require('./modules/classification/routes/classification.route.js') );
+app.use('/classifications', require('./modules/classification/routes/classification.route.js') );
+app.use('/typeOfFactory', require('./modules/typeOfFactory/routes/typeOfFactory.route.js') );
+app.use('/factory', require('./modules/factory/routes/factory.route.js') );
+app.use('/itemsFactory', require('./modules/itemsFactory/routes/itemsFactory.route.js') );
+app.use('/ourRequest', require('./modules/ourRequest/routes/ourRequest.route.js') );
+app.use('/paymentForFactory', require('./modules/PaymentForFactories/routes/paymentForFactories.route.js') );
+app.use('/factoryAccount', require('./modules/FactoryAccounts/routes/factoryAccount.route.js') );
 app.use(
   "/wayOfPayment",
-  require("./modules/wayOfPayment/routes/wayOfPayment.route.js")
+  require("./modules/wayOfPayment/routes/wayOfPayment.route.js.js")
 );
 app.use(
   "/stock",
-  require("./modules/stock/routes/stock.route")
+  require("./modules/stock/routes/stock.route.js")
 );
 app.use(
   "/branchStock",
-  require("./modules/branchStock/routes/branchStock.route")
+  require("./modules/branchStock/routes/branchStock.route.js")
 );
-app.use('/client', require('./modules/client/routes/client.route') );
-app.use('/government', require('./modules/government/routes/government.route') );
-app.use('/city', require('./modules/city/routes/city.route') );
-app.use('/sales', require('./modules/sale/routes/sale.route') );
-app.use('/paymentSale', require('./modules/paymentSale/routes/paymentSale.route') );
-app.use("/profit", require("./modules/profit/routes/profit.route"));
+app.use('/client', require('./modules/client/routes/client.route.js') );
+app.use('/government', require('./modules/government/routes/government.route.js') );
+app.use('/city', require('./modules/city/routes/city.route.js') );
+app.use('/sales', require('./modules/sale/routes/sale.route.js') );
+app.use('/paymentSale', require('./modules/paymentSale/routes/paymentSale.route.js') );
+app.use("/profit", require("./modules/profit/routes/profit.route.js"));
 
 
 
 
 
 // test afaq
-app.use("/map" , require("./modules/map/routes/map.route"))
+app.use("/map" , require("./modules/map/routes/map.route.js"))
 
 // catch 404 and forward to error handler
 app.use(function (req, res, next) {
@@ -99,4 +99,4 @@ mongoose
   });
 
 module.exports = app;
-export const handler = serverless(app);
+// export const handler = serverless(app);

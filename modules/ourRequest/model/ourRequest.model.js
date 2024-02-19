@@ -29,8 +29,7 @@ const ourRequestSchema = new mongoose.Schema({
     {
       itemFactoryId: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: "ItemsFactory", // Reference to another model (Item model)
-        required: true,
+        ref: "ItemsFactory",
       },
       unitsNumber: {
         type: Number,

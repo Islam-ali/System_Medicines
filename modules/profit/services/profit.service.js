@@ -1,6 +1,7 @@
 const saleModel = require("../../sale/model/sale.model");
-const PaymentForFactory = require("../../PaymentForFactories/model/paymentForFactories.model");
+const ourRequestModel = require("../../ourRequest/model/ourRequest.model");
 const { sum } = require("lodash");
+const PaymentForFactoryModel = require("../../PaymentForFactories/model/paymentForFactories.model");
 
 exports.getAllProfitByIncomes = async (req, res, next) => {
   try {
@@ -84,9 +85,9 @@ exports.getTotalRecivedAndBalanceAndProfit = async (req, res, next) => {
   }
 };
 
-exports.getAllProfitByExpences = async (req, res, next) => {
+exports.getAllExpences = async (req, res, next) => {
   try {
-    const allExpences = await PaymentForFactory.aggregate([
+    const allExpences = await PaymentForFactoryModel.aggregate([
       {
         $lookup: {
           from: "ourrequests",
@@ -95,31 +96,54 @@ exports.getAllProfitByExpences = async (req, res, next) => {
           as: "ourRequestId",
         },
       },
-      { $unwind: "$ourRequestId" },
+      {
+        $unwind: "$ourRequestId",
+      },
       {
         $lookup: {
-          from: "factories",
-          localField: "ourRequestId.factoryId",
+          from: "itemsfactories",
+          localField: "ourRequestId.itemFactoryId",
           foreignField: "_id",
           as: "factoryId",
         },
       },
       { $unwind: "$factoryId" },
-      {
-        $lookup: {
-          from: "typeoffactories",
-          localField: "factoryId.typeOfFactoryId",
-          foreignField: "_id",
-          as: "typeOfFactoryId",
-        },
-      },
-      { $unwind: "$typeOfFactoryId" },
     ]);
+
+    const totalCashAmount = sum(allExpences.map((income) => income.cashAmount));
+    const totalBalance = sum(allExpences.map((income) => income.balance));
 
     res.status(200).json({
       statusCode: res.statusCode,
       message: "successfully",
       data: allExpences,
+      totalCashAmount: totalCashAmount,
+      totalBalance: totalBalance,
+    });
+  } catch (error) {
+    res
+      .status(500)
+      .json({ statusCode: res.statusCode, message: error.message });
+  }
+};
+
+
+exports.getTotalCashAmountAndBalance = async (req, res, next) => {
+  try {
+    const allExpences = await PaymentForFactoryModel.aggregate([
+      {
+        $group: {
+          _id: null,
+          totalBalance: { $sum: "$balance" },
+          totalCashAmount: { $sum: "$cashAmount" },
+        },
+      },
+    ]);
+
+    res.status(200).json({
+      statusCode: 200,
+      message: "Successfully fetched all Expences",
+      data: allExpences[0],
     });
   } catch (error) {
     res

@@ -20,10 +20,16 @@ router.get(
 
 // Get all Profit Expences
 router.get(
-  "/getAllProfitByExpences",
+  "/getAllExpences",
   verifyToken,
-  profitService.getAllProfitByExpences
+  profitService.getAllExpences
 );
 
+// Get Total WasPaid And Balance
+router.get(
+  "/getTotalCashAmountAndBalance",
+  verifyToken,
+  profitService.getTotalCashAmountAndBalance
+);
 
 module.exports = router;

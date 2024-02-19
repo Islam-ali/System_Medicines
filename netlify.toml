@@ -1,8 +1,12 @@
-[functions]
-  external_node_modules = ["express"]
-  node_bundler = "esbuild"
+# The following redirect is intended for use with most SPAs that handle
+# routing internally.
 [[redirects]]
-  force = true
-  from = "/api/*"
+  from = "/*"
+  to = "/index.html"
   status = 200
-  to = "/.netlify/functions/api/:splat"
+
+[[headers]]
+  # Define which paths this specific [[headers]] block will cover.
+  for = "/*"
+    [headers.values]
+    Access-Control-Allow-Origin = "*"

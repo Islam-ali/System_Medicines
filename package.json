@@ -3,6 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "scripts": {
+    "vercel-build": "node ./index.js",
     "build": "build",
     "start": "node ./bin/www"
   },

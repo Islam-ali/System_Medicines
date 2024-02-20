@@ -2,81 +2,82 @@ const saleModel = require("../../sale/model/sale.model");
 const ourRequestModel = require("../../ourRequest/model/ourRequest.model");
 const { sum } = require("lodash");
 const PaymentForFactoryModel = require("../../PaymentForFactories/model/paymentForFactories.model");
+const paymentSaleModel = require("../../paymentSale/model/paymentSale.model");
 
-exports.getAllProfitByIncomes = async (req, res, next) => {
+exports.getAllIncomes = async (req, res, next) => {
   try {
-    const allIncomes = await saleModel.aggregate([
+    const queryDate = req.query.date;
+    const year = new Date(queryDate).getFullYear();
+    const month = new Date(queryDate).getMonth() + 1; // Months are zero-based, so add 1
+    const matchQuery = {
+      $expr: {
+        $and: [
+          { $eq: [{ $year: "$date" }, year] },
+          { $eq: [{ $month: "$date" }, month] },
+        ],
+      },
+    };
+
+    const allIncomes = await paymentSaleModel.aggregate([
       {
         $lookup: {
-          from: "branchstocks",
-          localField: "branchStockId",
+          from: "sales",
+          localField: "saleId",
           foreignField: "_id",
-          as: "branchStockId",
+          as: "saleId",
         },
       },
-      { $unwind: "$branchStockId" },
+      { $unwind: "$saleId" },
       {
         $lookup: {
           from: "clients",
-          localField: "clientId",
+          localField: "saleId.clientId",
           foreignField: "_id",
-          as: "clientId",
+          as: "saleId.clientId",
         },
       },
-      { $unwind: "$clientId" },
+      { $unwind: "$saleId.clientId" },
+      {
+        $lookup: {
+          from: "branchstocks",
+          localField: "saleId.branchStockId",
+          foreignField: "_id",
+          as: "saleId.branchStockId",
+        },
+      },
+      { $unwind: "$saleId.branchStockId" },
       {
         $lookup: {
           from: "stocks",
-          localField: "branchStockId.stockId",
+          localField: "saleId.branchStockId.stockId",
           foreignField: "_id",
-          as: "branchStockId.stockId",
+          as: "saleId.branchStockId.stockId",
         },
       },
-      { $unwind: "$branchStockId.stockId" },
-      //   {
-      // $addFields: {
-      //   profit: {
-      //     $sum: [
-      //       "$realProfit"
-      //     ],
-      //   },
-      // },
-      //   },
+      { $unwind: "$saleId.branchStockId.stockId" },
+      {
+        $lookup: {
+          from: "users",
+          localField: "recipientId",
+          foreignField: "_id",
+          as: "recipientId",
+        },
+      },
+      { $unwind: "$recipientId" },
+      {
+        $match: matchQuery,
+      },
     ]);
-
     // Calculate total profit
-    const totalProfit = sum(allIncomes.map((income) => income.realProfit));
+    const totalRecived = sum(allIncomes.map((income) => income.recived));
+    const totalBalance = sum(allIncomes.map((income) => income.balance));
 
     res.status(200).json({
       statusCode: 200,
       message: "Successfully fetched all incomes",
       data: allIncomes,
-      totalProfit: totalProfit,
-    });
-  } catch (error) {
-    res
-      .status(500)
-      .json({ statusCode: res.statusCode, message: error.message });
-  }
-};
-
-exports.getTotalRecivedAndBalanceAndProfit = async (req, res, next) => {
-  try {
-    const allIncomes = await saleModel.aggregate([
-      {
-        $group: {
-          _id: null,
-          totalRealProfit: { $sum: "$realProfit" },
-          totalBalance: { $sum: "$balance" },
-          totalReceived: { $sum: "$received" },
-        },
-      },
-    ]);
-
-    res.status(200).json({
-      statusCode: 200,
-      message: "Successfully fetched all incomes",
-      data: allIncomes[0],
+      totalRecived: totalRecived,
+      totalBalance: totalBalance,
     });
   } catch (error) {
     res
@@ -87,6 +88,17 @@ exports.getTotalRecivedAndBalanceAndProfit = async (req, res, next) => {
 
 exports.getAllExpences = async (req, res, next) => {
   try {
+    const queryDate = req.query.date;
+    const year = new Date(queryDate).getFullYear();
+    const month = new Date(queryDate).getMonth() + 1; // Months are zero-based, so add 1
+    const matchQuery = {
+      $expr: {
+        $and: [
+          { $eq: [{ $year: "$cashDate" }, year] },
+          { $eq: [{ $month: "$cashDate" }, month] },
+        ],
+      },
+    };
     const allExpences = await PaymentForFactoryModel.aggregate([
       {
         $lookup: {
@@ -108,6 +120,9 @@ exports.getAllExpences = async (req, res, next) => {
         },
       },
       { $unwind: "$factoryId" },
+      {
+        $match: matchQuery,
+      },
     ]);
 
     const totalCashAmount = sum(allExpences.map((income) => income.cashAmount));
@@ -127,23 +142,76 @@ exports.getAllExpences = async (req, res, next) => {
   }
 };
 
-
-exports.getTotalCashAmountAndBalance = async (req, res, next) => {
+exports.getAllProfitIncomes = async (req, res, next) => {
   try {
-    const allExpences = await PaymentForFactoryModel.aggregate([
+    const allProfit = await paymentSaleModel.aggregate([
+      {
+        $lookup: {
+          from: "sales",
+          localField: "saleId",
+          foreignField: "_id",
+          as: "saleInfo",
+        },
+      },
+      { $unwind: "$saleInfo" },
+      {
+        $lookup: {
+          from: "clients",
+          localField: "saleInfo.clientId",
+          foreignField: "_id",
+          as: "clientInfo",
+        },
+      },
+      { $unwind: "$clientInfo" },
+      {
+        $lookup: {
+          from: "branchstocks",
+          localField: "saleInfo.branchStockId",
+          foreignField: "_id",
+          as: "branchStockInfo",
+        },
+      },
+      { $unwind: "$branchStockInfo" },
+      {
+        $lookup: {
+          from: "stocks",
+          localField: "branchStockInfo.stockId",
+          foreignField: "_id",
+          as: "stockInfo",
+        },
+      },
+      { $unwind: "$stockInfo" },
+      {
+        $lookup: {
+          from: "users",
+          localField: "recipientId",
+          foreignField: "_id",
+          as: "recipientInfo",
+        },
+      },
+      { $unwind: "$recipientInfo" },
+      {
+        $addFields: {
+          totalCost: {
+            $multiply: ["$stockInfo.unitsCost", "$saleInfo.salesQuantity"],
+          }, // Calculate total cost using unitcost from stockInfo
+        },
+      },
       {
         $group: {
-          _id: null,
-          totalBalance: { $sum: "$balance" },
-          totalCashAmount: { $sum: "$cashAmount" },
+          _id: "$saleId", // Group by saleId
+          payments: { $push: "$$ROOT" }, // Push all payment documents into an array
+          totalCost: { $sum: "$totalCost" }, // Sum the total cost for each saleId
+          received: { $sum: "$recived" }, // Sum the received amount for each saleId
+          // profit: { $subtract: ["$received", "$totalCost"] }, // Calculate profit (received - totalCost) for each saleId
         },
       },
     ]);
 
     res.status(200).json({
       statusCode: 200,
-      message: "Successfully fetched all Expences",
-      data: allExpences[0],
+      message: "Successfully",
+      data: allProfit,
     });
   } catch (error) {
     res

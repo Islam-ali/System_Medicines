@@ -6,17 +6,11 @@ const {verifyToken,checkPermission} = require('../../../middelware/auth.middlewa
 
 // Get all Profit Incomes
 router.get(
-  "/getAllProfitByIncomes",
+  "/getAllIncomes",
   verifyToken,
-  profitService.getAllProfitByIncomes
+  profitService.getAllIncomes
 );
 
-// Get all Profit Incomes
-router.get(
-  "/getTotalRecivedAndBalanceAndProfit",
-  verifyToken,
-  profitService.getTotalRecivedAndBalanceAndProfit
-);
 
 // Get all Profit Expences
 router.get(
@@ -25,11 +19,10 @@ router.get(
   profitService.getAllExpences
 );
 
-// Get Total WasPaid And Balance
 router.get(
-  "/getTotalCashAmountAndBalance",
+  "/getAllProfitIncomes",
   verifyToken,
-  profitService.getTotalCashAmountAndBalance
+  profitService.getAllProfitIncomes
 );
 
 module.exports = router;

@@ -7,6 +7,7 @@ const stockModel = require("../../stock/model/stock.model");
 const PaymentForFactoryModel = require("../../PaymentForFactories/model/paymentForFactories.model");
 const FactoryModel = require("../../factory/model/factory.model");
 const { json } = require("express");
+const branchStock = require("../../branchStock/model/branchStock.model");
 class calculate {
   constructor() {}
 
@@ -404,29 +405,35 @@ exports.changeOrderStatus = async (req, res) => {
     const classificationId =
       objOurRequest.itemFactoryId.factoryId.typeOfFactoryId.classificationId;
 
-    const stockRequest = new stockModel({
-      classificationId: classificationId,
-      ourRequestId: objOurRequest._id,
-      itemName: objOurRequest.itemName,
-      itemFactoryId: objOurRequest.itemFactoryId._id,
-      typeofFactory: objOurRequest.itemFactoryId.factoryId.typeOfFactoryId.type,
-      unitsNumber: objOurRequest.unitsNumber,
-      unitsCost: objOurRequest.unitsCost,
-      totalcost: objOurRequest.totalcost,
-      patchNumber: "",
-      manfDate: "",
-      expDate: "",
-    });
-
-    // send to Stock if (orderStatus == RECIVED)
-    // const objStock = await stockModel.findOne({ourRequestId:objOurRequest._id});
-    // if(objStock){
-    //   await stockModel.create(stockRequest);
-    // }else
     if (req.body.orderStatus == orderStatusEnum.RECIVED) {
+      const stockRequest = new stockModel({
+        classificationId: classificationId,
+        ourRequestId: objOurRequest._id,
+        itemName: objOurRequest.itemName,
+        itemFactoryId: objOurRequest.itemFactoryId._id,
+        typeofFactory:
+          objOurRequest.itemFactoryId.factoryId.typeOfFactoryId.type,
+        unitsNumber: objOurRequest.unitsNumber,
+        unitsCost: objOurRequest.unitsCost,
+        totalcost: objOurRequest.totalcost,
+        patchNumber: "",
+        manfDate: "",
+        expDate: "",
+      });
+
+      // send to Stock if (orderStatus == RECIVED)
+      // const objStock = await stockModel.findOne({ourRequestId:objOurRequest._id});
+      // if(objStock){
+      //   await stockModel.create(stockRequest);
+      // }else
       await stockRequest.save();
     }
-
+    if (req.body.orderStatus == orderStatusEnum.RETURN) {
+      await stockModel.deleteOne({ ourRequestId: objOurRequest._id }).then(async(result)=>{
+        let exist = await branchStock.find({stockId:result._id});
+        console.log("cccccc", exist, result);
+      });
+    }
     res.status(201).json({
       statusCode: res.statusCode,
       message: "update Our Request successfully",
@@ -453,14 +460,14 @@ exports.deleteOurRequest = async (req, res) => {
     if (listPaymentForFactory.length > 0) {
       return res.status(400).json({
         statusCode: res.statusCode,
-        message: "can't deleted",
+        message: "There is a payment that cannot be deleted",
       });
     }
     // stock = await stockModel.findOne({
     //   ourRequestId: objOurRequest._id,
     // });
 
-    if (objOurRequest.listOfMaterials.length > 0) {
+    if (objOurRequest.listOfMaterials.length > 0 && false) {
       // old stock
       for (const material of objOurRequest.listOfMaterials) {
         const stockMaterial = await stockModel.findOne({

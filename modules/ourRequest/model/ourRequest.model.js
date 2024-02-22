@@ -8,7 +8,7 @@ const ourRequestSchema = new mongoose.Schema({
   },
   factoryId: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'Factory',
+    ref: "Factory",
     required: true,
   },
   orderStatus: {
@@ -19,14 +19,22 @@ const ourRequestSchema = new mongoose.Schema({
   unitsNumber: { type: Number, required: true },
   unitsCost: { type: Number, required: true },
   itemName: { type: String, required: true },
-  code: { type: String, required: true , uniqe: true },
-  
+  code: { type: String, required: true, uniqe: true },
+
   totalcost: { type: Number },
   wasPaid: { type: Number, default: 0 },
   balance: { type: Number, default: 0 },
   recevingDate: { type: Date },
   listOfMaterials: [
     {
+      typeOfFactoryId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "typeOfFactory",
+      },
+      factoryId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Factory",
+      },
       itemFactoryId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: "ItemsFactory",

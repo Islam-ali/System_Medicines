@@ -25,7 +25,6 @@ exports.getAllPaymentSale = async (req, res, next) => {
   clientId
     ? (matchSale["saleId.clientId"] = new mongoose.Types.ObjectId(clientId))
     : null;
-  console.log(matchSale);
   try {
     const allPaymentSale = await paymentSaleModel.aggregate([
       {

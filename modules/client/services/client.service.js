@@ -190,7 +190,9 @@ exports.deleteClient = async (req, res) => {
         message: "Not Found client",
       });
     }
-    await clientModel.deleteOne(filter);
+    await clientModel.deleteOne(filter).then(async (result) => {
+      await logClientModel.deleteMany({clientId:req.params.id})
+    });
     res.status(201).json({
       statusCode: res.statusCode,
       message: "deleted client successfully",

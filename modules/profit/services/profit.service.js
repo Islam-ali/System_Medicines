@@ -69,7 +69,7 @@ exports.getAllIncomes = async (req, res, next) => {
       },
     ]);
     // Calculate total profit
-    const totalRecived = sum(allIncomes.map((income) => income.recived));
+    const totalRecived = sum(allIncomes.map((income) => income.amount));
     const totalBalance = sum(allIncomes.map((income) => income.balance));
 
     res.status(200).json({
@@ -144,7 +144,21 @@ exports.getAllExpences = async (req, res, next) => {
 
 exports.getAllProfitIncomes = async (req, res, next) => {
   try {
+    const queryDate = req.query.date;
+    const year = new Date(queryDate).getFullYear();
+    const month = new Date(queryDate).getMonth() + 1; // Months are zero-based, so add 1
+    const matchQuery = {
+      $expr: {
+        $and: [
+          { $eq: [{ $year: "$date" }, year] },
+          { $eq: [{ $month: "$date" }, month] },
+        ],
+      },
+    };
     const allProfit = await paymentSaleModel.aggregate([
+      {
+        $match: matchQuery,
+      },
       {
         $lookup: {
           from: "sales",
@@ -194,7 +208,7 @@ exports.getAllProfitIncomes = async (req, res, next) => {
         $addFields: {
           totalCost: {
             $multiply: ["$stockInfo.unitsCost", "$saleInfo.salesQuantity"],
-          }, // Calculate total cost using unitcost from stockInfo
+          },
         },
       },
       {
@@ -202,16 +216,34 @@ exports.getAllProfitIncomes = async (req, res, next) => {
           _id: "$saleId", // Group by saleId
           payments: { $push: "$$ROOT" }, // Push all payment documents into an array
           totalCost: { $sum: "$totalCost" }, // Sum the total cost for each saleId
-          received: { $sum: "$recived" }, // Sum the received amount for each saleId
-          // profit: { $subtract: ["$received", "$totalCost"] }, // Calculate profit (received - totalCost) for each saleId
+          totalRecived: { $sum: "$amount" },
+          clientName: { $first: "$clientInfo.name" },
+          clientId: { $first: "$clientInfo._id" },
+          salesValue: { $first: "$saleInfo.salesValue" },
+          itemName: { $first: "$stockInfo.itemName" },
+        },
+      },
+      {
+        $addFields: {
+          profit: { $subtract: ["$totalRecived", "$totalCost"] },
+          totalBalance: {
+            $subtract: ["$salesValue", "$totalRecived"],
+          },
         },
       },
     ]);
+
+    const totalBalance = sum(allProfit.map((profit) => profit.totalBalance));
+    const totalRecived = sum(allProfit.map((profit) => profit.totalRecived));
+    const totalProfit = sum(allProfit.map((profit) => profit.profit));
 
     res.status(200).json({
       statusCode: 200,
       message: "Successfully",
       data: allProfit,
+      totalBalance: totalBalance,
+      totalRecived: totalRecived,
+      totalProfit: totalProfit,
     });
   } catch (error) {
     res

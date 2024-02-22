@@ -1,5 +1,3 @@
-const saleModel = require("../../sale/model/sale.model");
-const ourRequestModel = require("../../ourRequest/model/ourRequest.model");
 const { sum } = require("lodash");
 const PaymentForFactoryModel = require("../../PaymentForFactories/model/paymentForFactories.model");
 const paymentSaleModel = require("../../paymentSale/model/paymentSale.model");
@@ -101,6 +99,9 @@ exports.getAllExpences = async (req, res, next) => {
     };
     const allExpences = await PaymentForFactoryModel.aggregate([
       {
+        $match: matchQuery,
+      },
+      {
         $lookup: {
           from: "ourrequests",
           localField: "ourRequestId",
@@ -121,7 +122,20 @@ exports.getAllExpences = async (req, res, next) => {
       },
       { $unwind: "$factoryId" },
       {
-        $match: matchQuery,
+        $group: {
+          _id: "$ourRequestId", // Group by ourRequestId
+          payments: { $push: "$$ROOT" }, // Push all payment documents into an array
+          totalRecived: { $sum: "$ourRequestId.wasPaid" },
+          totalcost: { $first: "$ourRequestId.totalcost" },
+          itemName: { $first: "$stockInfo.itemName" },
+        },
+      },
+      {
+        $addFields: {
+          totalBalance: {
+            $subtract: ["$totalcost", "$totalRecived"],
+          },
+        },
       },
     ]);
 

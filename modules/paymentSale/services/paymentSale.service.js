@@ -146,12 +146,19 @@ exports.createPaymentSale = async (req, res, next) => {
 
     objSale.received += body.amount;
     objSale.balance = objSale.salesValue - objSale.received;
-    // objSale.profit =
-    //   objSale.received -
-    //   objSale.salesQuantity * objSale.branchStockId.stockId.unitsCost;
-    objSale.realProfit =
-      objSale.received -
-      (objSale.salesQuantity * objSale.branchStockId.stockId.unitsCost);
+
+    if (objSale.received > objSale.salesValue){
+          return res.status(400).json({
+            statusCode: res.statusCode,
+            message: "Amount more than balance",
+          });
+    }
+      // objSale.profit =
+      //   objSale.received -
+      //   objSale.salesQuantity * objSale.branchStockId.stockId.unitsCost;
+      objSale.realProfit =
+        objSale.received -
+        objSale.salesQuantity * objSale.branchStockId.stockId.unitsCost;
 
     const newPaymentSale = new paymentSaleModel({
       saleId: body.saleId,

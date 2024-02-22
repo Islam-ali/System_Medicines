@@ -5,7 +5,7 @@ const convertArray = require("../../../core/shared/errorForm");
 const calculatePaymentFactory = require("../../../core/shared/calculatePaymentFactory");
 const { validationResult } = require("express-validator");
 const mongoose = require("mongoose");
-
+const expencesModel = require("../../expences/model/expences.model");
 
 exports.totalCashAmountAndBalanceByMonthPaymentFactory = async (req, res) => {
   let currentMonth = new Date().getMonth() + 1;
@@ -227,6 +227,16 @@ exports.createPaymentForFactory = async (req, res) => {
     const newPaymentForFactory = await PaymentForFactory.create(body);
     if (newPaymentForFactory) {
       newPaymentForFactoryId = newPaymentForFactory._id;
+      const objExpences = new expencesModel({
+        typeExpences: "FactoryPayment",
+        paymentFactoryId: newPaymentForFactory._id,
+        salaryId: null,
+        amount: body.cashAmount,
+        balance: body.balance,
+        cashDate: body.cashDate,
+      });
+
+      await objExpences.save();
     }
     // create Factory Account Log
     // body["balance"] = balance;
@@ -376,7 +386,7 @@ exports.getPaymentByFactoryId = async (req, res) => {
       { $unwind: "$factoryId" },
       {
         $match: {
-          "ourRequestId.factoryId": objectIdFactoryId,    
+          "ourRequestId.factoryId": objectIdFactoryId,
         },
       },
     ]);

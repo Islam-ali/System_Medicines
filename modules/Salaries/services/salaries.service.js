@@ -3,6 +3,7 @@ const { validationResult } = require("express-validator");
 const convertArray = require("../../../core/shared/errorForm");
 const mongoose = require("mongoose");
 const { sum } = require("lodash");
+const expencesModel = require("../../expences/model/expences.model");
 
 // get All type of Factories
 exports.getAllSalaries = async (req, res, next) => {
@@ -33,7 +34,7 @@ exports.getAllSalaries = async (req, res, next) => {
         $match: matchQuery,
       },
     ]);
-    
+
     const totalSalaries = sum(allSalaries.map((income) => income.amount));
 
     res.status(200).json({
@@ -100,7 +101,18 @@ exports.createSalaries = async (req, res, next) => {
     //   });
     // }
 
-    await salariesModel.create(body);
+    await salariesModel.create(body).then(async (result) => {
+      console.log(result);
+      const objExpences = new expencesModel({
+        typeExpences: "salary",
+        paymentFactoryId: null,
+        salaryId: result._id,
+        amount: body.amount,
+        cashDate: body.date,
+      });
+
+      await objExpences.save();
+    });
 
     res.status(201).json({
       statusCode: res.statusCode,
@@ -142,8 +154,21 @@ exports.updateSalaries = async (req, res, next) => {
     const updateDocument = {
       $set: body,
     };
-    await objsalariesModel.updateOne(SalariesId, updateDocument);
-
+    await salariesModel.updateOne({ _id: SalariesId }, updateDocument);
+    const objExpences = {
+      typeExpences: "salary",
+      paymentFactoryId: null,
+      amount: body.amount,
+      cashDate: body.date,
+    };
+    await expencesModel.updateOne(
+      {
+        salaryId: req.params.id,
+      },
+      {
+        $set: objExpences,
+      }
+    );
     res.status(201).json({
       statusCode: res.statusCode,
       message: "Update Salary successfully",
@@ -159,13 +184,20 @@ exports.updateSalaries = async (req, res, next) => {
 exports.deleteSalaries = async (req, res) => {
   const SalariesId = req.params.id;
   try {
-    const objsalariesModel = await salariesModel.findById(SalariesId).populate("employeeId");
+    const objsalariesModel = await salariesModel
+      .findById(SalariesId)
+      .populate("employeeId");
     if (!objsalariesModel) {
       return res.status(404).json({
         statusCode: res.statusCode,
         message: "salary not found",
       });
     }
+
+    await salariesModel.deleteOne({_id:req.params.id});
+    await expencesModel.deleteOne({
+      salaryId: req.params.id,
+    });
     res.status(201).json({
       statusCode: res.statusCode,
       message: "deleted salary successfully",

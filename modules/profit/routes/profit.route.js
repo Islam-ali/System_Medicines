@@ -13,11 +13,11 @@ router.get(
 
 
 // Get all Profit Expences
-router.get(
-  "/getAllExpences",
-  verifyToken,
-  profitService.getAllExpences
-);
+// router.get(
+//   "/getAllExpences",
+//   verifyToken,
+//   profitService.getAllExpences
+// );
 
 router.get(
   "/getAllProfitIncomes",

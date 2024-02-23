@@ -47,6 +47,7 @@ exports.createOurRequest = async (req, res) => {
       body.unitsNumber,
       body.unitsCost
     );
+    body["balance"] = body.totalcost;
 
     const objFactory = await FactoryModel.findOne({
       _id: objItemFactory.factoryId,
@@ -299,7 +300,7 @@ exports.updateOurRequest = async (req, res) => {
     const classificationId = objFactory.typeOfFactoryId.classificationId;
     let stock = {};
     if (classificationId == 2) {
-      if (body.listOfMaterials.length > 0) {
+      if (req.body.listOfMaterials.length > 0) {
         // old stock
         for (const material of objOurRequest.listOfMaterials) {
           stock = await stockModel.findOne({
@@ -316,7 +317,7 @@ exports.updateOurRequest = async (req, res) => {
           );
         }
         // new stock
-        for (const material of body.listOfMaterials) {
+        for (const material of req.body.listOfMaterials) {
           stock = await stockModel.findOne({
             itemFactoryId: material.itemFactoryId,
           });

@@ -84,77 +84,77 @@ exports.getAllIncomes = async (req, res, next) => {
   }
 };
 
-exports.getAllExpences = async (req, res, next) => {
-  try {
-    const queryDate = req.query.date;
-    const year = new Date(queryDate).getFullYear();
-    const month = new Date(queryDate).getMonth() + 1; // Months are zero-based, so add 1
-    const matchQuery = {
-      $expr: {
-        $and: [
-          { $eq: [{ $year: "$cashDate" }, year] },
-          { $eq: [{ $month: "$cashDate" }, month] },
-        ],
-      },
-    };
-    const allExpences = await PaymentForFactoryModel.aggregate([
-      {
-        $match: matchQuery,
-      },
-      {
-        $lookup: {
-          from: "ourrequests",
-          localField: "ourRequestId",
-          foreignField: "_id",
-          as: "ourRequestId",
-        },
-      },
-      {
-        $unwind: "$ourRequestId",
-      },
-      {
-        $lookup: {
-          from: "itemsfactories",
-          localField: "ourRequestId.itemFactoryId",
-          foreignField: "_id",
-          as: "factoryId",
-        },
-      },
-      { $unwind: "$factoryId" },
-      {
-        $group: {
-          _id: "$ourRequestId", // Group by ourRequestId
-          payments: { $push: "$$ROOT" }, // Push all payment documents into an array
-          totalRecived: { $sum: "$ourRequestId.wasPaid" },
-          totalcost: { $first: "$ourRequestId.totalcost" },
-          itemName: { $first: "$stockInfo.itemName" },
-        },
-      },
-      {
-        $addFields: {
-          totalBalance: {
-            $subtract: ["$totalcost", "$totalRecived"],
-          },
-        },
-      },
-    ]);
+// exports.getAllExpences = async (req, res, next) => {
+//   try {
+//     const queryDate = req.query.date;
+//     const year = new Date(queryDate).getFullYear();
+//     const month = new Date(queryDate).getMonth() + 1; // Months are zero-based, so add 1
+//     const matchQuery = {
+//       $expr: {
+//         $and: [
+//           { $eq: [{ $year: "$cashDate" }, year] },
+//           { $eq: [{ $month: "$cashDate" }, month] },
+//         ],
+//       },
+//     };
+//     const allExpences = await PaymentForFactoryModel.aggregate([
+//       {
+//         $match: matchQuery,
+//       },
+//       {
+//         $lookup: {
+//           from: "ourrequests",
+//           localField: "ourRequestId",
+//           foreignField: "_id",
+//           as: "ourRequestId",
+//         },
+//       },
+//       {
+//         $unwind: "$ourRequestId",
+//       },
+//       {
+//         $lookup: {
+//           from: "itemsfactories",
+//           localField: "ourRequestId.itemFactoryId",
+//           foreignField: "_id",
+//           as: "factoryId",
+//         },
+//       },
+//       { $unwind: "$factoryId" },
+//       {
+//         $group: {
+//           _id: "$ourRequestId", // Group by ourRequestId
+//           payments: { $push: "$$ROOT" }, // Push all payment documents into an array
+//           totalRecived: { $sum: "$ourRequestId.wasPaid" },
+//           totalcost: { $first: "$ourRequestId.totalcost" },
+//           itemName: { $first: "$stockInfo.itemName" },
+//         },
+//       },
+//       {
+//         $addFields: {
+//           totalBalance: {
+//             $subtract: ["$totalcost", "$totalRecived"],
+//           },
+//         },
+//       },
+//     ]);
 
-    const totalCashAmount = sum(allExpences.map((income) => income.cashAmount));
-    const totalBalance = sum(allExpences.map((income) => income.balance));
+//     const totalCashAmount = sum(allExpences.map((income) => income.cashAmount));
+//     const totalBalance = sum(allExpences.map((income) => income.balance));
 
-    res.status(200).json({
-      statusCode: res.statusCode,
-      message: "successfully",
-      data: allExpences,
-      totalCashAmount: totalCashAmount,
-      totalBalance: totalBalance,
-    });
-  } catch (error) {
-    res
-      .status(500)
-      .json({ statusCode: res.statusCode, message: error.message });
-  }
-};
+//     res.status(200).json({
+//       statusCode: res.statusCode,
+//       message: "successfully",
+//       data: allExpences,
+//       totalCashAmount: totalCashAmount,
+//       totalBalance: totalBalance,
+//     });
+//   } catch (error) {
+//     res
+//       .status(500)
+//       .json({ statusCode: res.statusCode, message: error.message });
+//   }
+// };
 
 exports.getAllProfitIncomes = async (req, res, next) => {
   try {

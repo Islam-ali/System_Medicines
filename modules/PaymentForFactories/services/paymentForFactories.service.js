@@ -6,10 +6,20 @@ const calculatePaymentFactory = require("../../../core/shared/calculatePaymentFa
 const { validationResult } = require("express-validator");
 const mongoose = require("mongoose");
 const expencesModel = require("../../expences/model/expences.model");
+const { sum } = require("lodash");
 
 exports.totalCashAmountAndBalanceByMonthPaymentFactory = async (req, res) => {
-  let currentMonth = new Date().getMonth() + 1;
-  let currentYear = new Date().getFullYear();
+  const queryDate = req.query.date;
+  const year = new Date(queryDate).getFullYear();
+  const month = new Date(queryDate).getMonth() + 1; // Months are zero-based, so add 1
+  const matchQuery = {
+    $expr: {
+      $and: [
+        { $eq: [{ $year: "$cashDate" }, year] },
+        { $eq: [{ $month: "$cashDate" }, month] },
+      ],
+    },
+  };
   let matchClassification = {};
   const classificationId = req.query.classificationId;
   req.query.classificationId
@@ -20,6 +30,9 @@ exports.totalCashAmountAndBalanceByMonthPaymentFactory = async (req, res) => {
   console.log(matchClassification);
   try {
     const totals = await PaymentForFactory.aggregate([
+      {
+        $match: matchQuery,
+      },
       {
         $lookup: {
           from: "ourrequests",
@@ -50,26 +63,39 @@ exports.totalCashAmountAndBalanceByMonthPaymentFactory = async (req, res) => {
       {
         $match: matchClassification,
       },
-      {
-        $match: {
-          cashDate: {
-            $gte: new Date(`${currentYear}-${currentMonth}-01`),
-            $lt: new Date(`${currentYear}-${currentMonth + 1}-01`),
-          },
-        },
-      },
+      // {
+      //   $match: {
+      //     cashDate: {
+      //       $gte: new Date(`${currentYear}-${currentMonth}-01`),
+      //       $lt: new Date(`${currentYear}-${currentMonth + 1}-01`),
+      //     },
+      //   },
+      // },
       {
         $group: {
-          _id: `${currentYear}-${currentMonth}-01`,
+          // _id: `${currentYear}-${currentMonth}-01`,
+          _id: "$ourRequestId", // Group by ourRequestId
+          payments: { $push: "$$ROOT" }, // Push all payment documents into an array
+          totalRecived: { $sum: "$ourRequestId.wasPaid" },
+          totalcost: { $first: "$ourRequestId.totalcost" },
+          itemName: { $first: "$stockInfo.itemName" },
           totalCashAmount: { $sum: "$cashAmount" },
           totalBalance: { $sum: "$balance" },
         },
       },
+      {
+        $addFields: {
+          // profit: { $subtract: ["$totalRecived", "$totalCost"] },
+          totalBalance: {
+            $subtract: ["$totalcost", "$totalCashAmount"],
+          },
+        },
+      },
     ]);
     const objMap = {
-      date: `${currentYear}-${currentMonth}-01`,
-      totalCashAmount: totals.length > 0 ? totals[0].totalCashAmount : 0,
-      totalBalance: totals.length > 0 ? totals[0].totalBalance : 0,
+      date: `${queryDate}`,
+      totalCashAmount: sum(totals.map((ele) => ele.totalCashAmount)),
+      totalBalance: sum(totals.map((ele) => ele.totalBalance)),
     };
     res.status(200).json({
       statusCode: res.statusCode,
@@ -82,11 +108,20 @@ exports.totalCashAmountAndBalanceByMonthPaymentFactory = async (req, res) => {
 };
 
 exports.totalCashAmountAndBalanceByYearPaymentFactory = async (req, res) => {
-  let currentYear = new Date().getFullYear();
+  const queryDate = req.query.date;
+  const year = new Date(queryDate).getFullYear();
+  const matchQuery = {
+    $expr: {
+      $and: [{ $eq: [{ $year: "$cashDate" }, year] }],
+    },
+  };
   try {
     const classificationId = req.query.classificationId;
 
     const totals = await PaymentForFactory.aggregate([
+      {
+        $match: matchQuery,
+      },
       {
         $lookup: {
           from: "ourrequests",
@@ -119,34 +154,39 @@ exports.totalCashAmountAndBalanceByYearPaymentFactory = async (req, res) => {
           "typeOfFactoryId.classificationId": parseInt(classificationId),
         },
       },
-      {
-        $match: {
-          cashDate: {
-            $gte: new Date(`${currentYear}-01-01`),
-            $lt: new Date(`${currentYear + 1}-01-01`),
-          },
-        },
-      },
+      // {
+      //   $match: {
+      //     cashDate: {
+      //       $gte: new Date(`${currentYear}-01-01`),
+      //       $lt: new Date(`${currentYear + 1}-01-01`),
+      //     },
+      //   },
+      // },
       {
         $group: {
-          _id: { $year: "$cashDate" }, // Group by year
+          // _id: `${currentYear}-${currentMonth}-01`,
+          _id: "$ourRequestId", // Group by ourRequestId
+          payments: { $push: "$$ROOT" }, // Push all payment documents into an array
+          totalRecived: { $sum: "$ourRequestId.wasPaid" },
+          totalcost: { $first: "$ourRequestId.totalcost" },
+          itemName: { $first: "$stockInfo.itemName" },
           totalCashAmount: { $sum: "$cashAmount" },
           totalBalance: { $sum: "$balance" },
         },
       },
       {
-        $group: {
-          _id: null, // Group to calculate grand totals
-          totalsByYear: { $push: "$$ROOT" }, // Store yearly totals in an array
-          grandTotalCashAmount: { $sum: "$totalCashAmount" },
-          grandTotalBalance: { $sum: "$totalBalance" },
+        $addFields: {
+          // profit: { $subtract: ["$totalRecived", "$totalCost"] },
+          totalBalance: {
+            $subtract: ["$totalcost", "$totalCashAmount"],
+          },
         },
       },
     ]);
     const objMap = {
-      date: currentYear,
-      totalCashAmount: totals.length > 0 ? totals[0].grandTotalCashAmount : 0,
-      totalBalance: totals.length > 0 ? totals[0].grandTotalBalance : 0,
+      date: `${queryDate}`,
+      totalCashAmount: sum(totals.map((ele) => ele.totalCashAmount)),
+      totalBalance: sum(totals.map((ele) => ele.totalBalance)),
     };
     res.status(200).json({
       statusCode: res.statusCode,
@@ -154,8 +194,6 @@ exports.totalCashAmountAndBalanceByYearPaymentFactory = async (req, res) => {
       data: objMap,
     });
   } catch (error) {
-    await session.abortTransaction();
-    session.endSession();
     res.status(500).json({ message: error.message });
   }
 };
@@ -232,7 +270,6 @@ exports.createPaymentForFactory = async (req, res) => {
         paymentFactoryId: newPaymentForFactory._id,
         salaryId: null,
         amount: body.cashAmount,
-        balance: body.balance,
         cashDate: body.cashDate,
       });
 
@@ -261,7 +298,21 @@ exports.createPaymentForFactory = async (req, res) => {
 exports.getAllPaymentForFactories = async (req, res) => {
   try {
     const classificationId = req.query.classificationId;
+    const queryDate = req.query.date;
+    const year = new Date(queryDate).getFullYear();
+    const month = new Date(queryDate).getMonth() + 1; // Months are zero-based, so add 1
+    const matchQuery = {
+      $expr: {
+        $and: [
+          { $eq: [{ $year: "$cashDate" }, year] },
+          { $eq: [{ $month: "$cashDate" }, month] },
+        ],
+      },
+    };
     const PaymentForFactories = await PaymentForFactory.aggregate([
+      {
+        $match: matchQuery,
+      },
       {
         $lookup: {
           from: "ourrequests",
@@ -543,6 +594,21 @@ exports.updatePaymentForFactory = async (req, res) => {
       );
     }
 
+    const objExpences = {
+      typeExpences: "FactoryPayment",
+      salaryId: null,
+      amount: req.body.cashAmount,
+      cashDate: req.body.cashDate,
+    };
+    await expencesModel.updateOne(
+      {
+        paymentFactoryId: req.params.id,
+      },
+      {
+        $set: objExpences,
+      }
+    );
+
     newObjourRequest = await ourRequest.findOne(filter);
 
     // calculate(balance)
@@ -635,6 +701,9 @@ exports.deletePaymentForFactory = async (req, res) => {
     // Remove Payment For Factory
     await PaymentForFactory.deleteOne(filterPaymentForFactoryId);
 
+    await expencesModel.deleteOne({
+      paymentFactoryId: req.params.id,
+    });
     await session.commitTransaction();
     session.endSession();
 

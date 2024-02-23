@@ -34,6 +34,25 @@ exports.getAllExpences = async (req, res, next) => {
                 as: "paymentFactoryId",
               },
             },
+            // {
+            //   $lookup: {
+            //     from: "ourrequests",
+            //     localField: "paymentFactoryId.ourRequestId",
+            //     foreignField: "_id",
+            //     as: "ourRequestId",
+            //   },
+            // },
+            // {
+            //   $unwind: "$ourRequestId",
+            // },
+            // {
+            //   $lookup: {
+            //     from: "factories",
+            //     localField: "ourRequestId.factoryId",
+            //     foreignField: "_id",
+            //     as: "factories",
+            //   },
+            // },
           ],
           withoutpaymentFactory: [
             {
@@ -74,6 +93,14 @@ exports.getAllExpences = async (req, res, next) => {
                 as: "salaryId",
               },
             },
+            {
+              $lookup: {
+                from: "users",
+                localField: "salaryId.employeeId",
+                foreignField: "_id",
+                as: "employeeId",
+              },
+            },
           ],
           withoutSalary: [
             {
@@ -97,25 +124,33 @@ exports.getAllExpences = async (req, res, next) => {
       {
         $replaceRoot: { newRoot: "$salaries" },
       },
-      {
-        $lookup: {
-          from: "ourrequests",
-          localField: "paymentFactoryId.ourRequestId",
-          foreignField: "_id",
-          as: "ourRequestId",
-        },
-      },
     ]);
 
-    const totalCashAmount = sum(allExpences.map((income) => income.wasPaid));
-    const totalBalance = sum(allExpences.map((income) => income.balance));
+    const totalCashAmount = sum(
+      allExpences.map((income) => income.amount)
+    );
+
+    const totalCashAmountpaymentFactory = allExpences.reduce((sum, item) => {
+      if (item.typeExpences === "FactoryPayment") {
+        return sum + item.amount;
+      }
+      return sum;
+    }, 0);
+
+    const totalCashAmountSalaries = allExpences.reduce((sum, item) => {
+      if (item.typeExpences === "salary") {
+        return sum + item.amount;
+      }
+      return sum;
+    }, 0);
 
     res.status(200).json({
       statusCode: res.statusCode,
       message: "successfully",
       data: allExpences,
-      totalCashAmount: totalCashAmount,
-      totalBalance: totalBalance,
+      totalCashAmountpaymentFactory: totalCashAmountpaymentFactory | 0,
+      totalCashAmountSalaries: totalCashAmountSalaries | 0,
+      totalCashAmount: totalCashAmount | 0,
     });
   } catch (error) {
     res

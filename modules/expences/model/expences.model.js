@@ -10,7 +10,6 @@ const expencesSchema = new mongoose.Schema({
     ref: "salaries",
   },
   amount: { type: Number, required: true },
-  balance: { type: Number, required: true },
   cashDate: { type: Date, required: true },
 });
 

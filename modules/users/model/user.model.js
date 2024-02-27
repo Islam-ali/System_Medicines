@@ -10,20 +10,24 @@ const userSchema = new mongoose.Schema({
   phoneNumber: { type: String, required: true },
   roleId: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'Role',
+    ref: "Role",
     // required: true,
+  },
+  active: {
+    type: Boolean,
+    default: false,
   },
 });
 
 
 // Hash user password before saving to the database
-userSchema.pre('save', async function (next) {
-  const user = this;
-  if (user.isModified('password')) {
-    user.password = await bcrypt.hash(user.password, 10);
-  }
-  next();
-});
+// userSchema.pre('save', async function (next) {
+//   const user = this;
+//   if (user.isModified('password')) {
+//     user.password = await bcrypt.hash(user.password, 10);
+//   }
+//   next();
+// });
 
 const User = mongoose.model('users', userSchema);
 

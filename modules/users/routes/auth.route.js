@@ -14,4 +14,6 @@ router.get('/getAllUsers' , authService.getAllUsers);
 
 router.put('/updateUser/:id', validator.validateRegistration , authService.updateUser);
 
+router.put("/changeStatus/:id", authService.changeStatus);
+
 module.exports = router;

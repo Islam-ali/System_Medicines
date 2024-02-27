@@ -61,7 +61,9 @@ exports.login = async (req, res) => {
       objError = { username: ["username is Wrong"] };
       return res.status(400).json({ message: "Invalid Data", errors: objError });
     }
-    const isPasswordValid = await bcrypt.compare(password, user.password);
+    // const isPasswordValid = await bcrypt.compare(password, user.password);
+    const isPasswordValid = password === user.password;
+
     if (!isPasswordValid) {
       objError = { password: ["password is Wrong"] };
       return res.status(400).json({ message: "Invalid Data", errors: objError });
@@ -130,7 +132,7 @@ exports.updateUser = async (req, res) => {
       errors: convArray.errorForm(),
     });
   }
-  const { username , email , phoneNumber, roleId } = req.body;
+  const { username, email, phoneNumber, roleId, password } = req.body;
   try {
     const UserToUpdate = await userModel.findOne({ _id: req.params.id });
     if (!UserToUpdate) {
@@ -155,6 +157,7 @@ exports.updateUser = async (req, res) => {
     UserToUpdate.email = email
     UserToUpdate.phoneNumber = phoneNumber
     UserToUpdate.roleId = roleId
+    UserToUpdate.password = password;
 
     await UserToUpdate.save();
     res.status(201).json({
@@ -163,5 +166,32 @@ exports.updateUser = async (req, res) => {
     });
   } catch (error) {
     res.status(500).json({ message: error.message });
+  }
+};
+
+// Delete Type Of Factory
+exports.changeStatus = async (req, res) => {
+  try {
+    const filter = { _id: req.params.id };
+    const objUserModel = await userModel.findOne(filter);
+    if (!objUserModel) {
+      return res.status(404).json({
+        statusCode: res.statusCode,
+        message: "Not Found User",
+      });
+    }
+
+    objUserModel["active"] = !objUserModel["active"];
+    
+    await objUserModel.save();
+
+    res.status(201).json({
+      statusCode: res.statusCode,
+      message: "change Active User successfully",
+    });
+  } catch (error) {
+    res
+      .status(500)
+      .json({ statusCode: res.statusCode, message: error.message });
   }
 };

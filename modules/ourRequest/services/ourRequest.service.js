@@ -429,12 +429,12 @@ exports.changeOrderStatus = async (req, res) => {
       // }else
       await stockRequest.save();
     }
-    if (req.body.orderStatus == orderStatusEnum.RETURN) {
-      await stockModel.deleteOne({ ourRequestId: objOurRequest._id }).then(async(result)=>{
-        let exist = await branchStock.find({stockId:result._id});
-        console.log("cccccc", exist, result);
-      });
-    }
+    // if (req.body.orderStatus == orderStatusEnum.RETURN) {
+    //   await stockModel.deleteOne({ ourRequestId: objOurRequest._id }).then(async(result)=>{
+    //     let exist = await branchStock.find({stockId:result._id});
+    //     console.log("cccccc", exist, result);
+    //   });
+    // }
     res.status(201).json({
       statusCode: res.statusCode,
       message: "update Our Request successfully",

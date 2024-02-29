@@ -35,6 +35,22 @@ const Permission = [
   { permission: "branchStock.read", isSelected: false },
   { permission: "branchStock.update", isSelected: false },
   { permission: "branchStock.delete", isSelected: false },
+  { permission: "accounting.create", isSelected: false },
+  { permission: "accounting.read", isSelected: false },
+  { permission: "accounting.update", isSelected: false },
+  { permission: "accounting.delete", isSelected: false },
+  { permission: "clients.create", isSelected: false },
+  { permission: "clients.read", isSelected: false },
+  { permission: "clients.update", isSelected: false },
+  { permission: "clients.delete", isSelected: false },
+  { permission: "sale.create", isSelected: false },
+  { permission: "sale.read", isSelected: false },
+  { permission: "sale.update", isSelected: false },
+  { permission: "sale.delete", isSelected: false },
+  { permission: "paymentClient.create", isSelected: false },
+  { permission: "paymentClient.read", isSelected: false },
+  { permission: "paymentClient.update", isSelected: false },
+  { permission: "paymentClient.delete", isSelected: false },
 ];
 
 module.exports = Permission;

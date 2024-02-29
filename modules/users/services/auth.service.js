@@ -68,6 +68,12 @@ exports.login = async (req, res) => {
       objError = { password: ["password is Wrong"] };
       return res.status(400).json({ message: "Invalid Data", errors: objError });
     }
+
+        if (!user.active) {
+          return res
+            .status(400)
+            .json({ message: "You are Not Authenticated ", errors: objError });
+        }
     // Create JWT token
     const expiresInOneYear = 365 * 24 * 60 * 60;
     const payload = {

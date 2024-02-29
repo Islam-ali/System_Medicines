@@ -8,6 +8,7 @@ const {verifyToken,checkPermission} = require('../../../middelware/auth.middlewa
 router.get(
   "/getAllIncomes",
   verifyToken,
+  checkPermission('user.read') ,
   profitService.getAllIncomes
 );
 
@@ -22,6 +23,7 @@ router.get(
 router.get(
   "/getAllProfitIncomes",
   verifyToken,
+  checkPermission('user.read') ,
   profitService.getAllProfitIncomes
 );
 

@@ -6,26 +6,26 @@ const validateFactory = require('../validation/factory.validation');
 
 
 // Create a new factory
-router.post('/createFactory', verifyToken  , validateFactory ,factoryService.createFactory);
+router.post('/createFactory', verifyToken  ,checkPermission('factory.read'), validateFactory ,factoryService.createFactory);
 
 // Get all factories
-router.get('/getAllFactories', verifyToken  ,factoryService.getAllFactories);
+router.get('/getAllFactories', verifyToken  ,checkPermission('factory.read'),factoryService.getAllFactories);
 
 // Get a specific factory by ID
-router.get('/getFactoryById/:id', verifyToken  , factoryService.getFactoryById );
+router.get('/getFactoryById/:id', verifyToken  ,checkPermission('factory.read'), factoryService.getFactoryById );
 
 // Get factories by TypeOfFactoryId
-router.get('/getFactoriesByTypeOfFactoryId/:typeOfFactoryId', verifyToken  , factoryService.getFactoriesByTypeOfFactoryId);
+router.get('/getFactoriesByTypeOfFactoryId/:typeOfFactoryId', verifyToken  ,checkPermission('factory.read'), factoryService.getFactoriesByTypeOfFactoryId);
 
 
 // Get Factories By ClassificationId
-router.get('/getFactoriesByClassificationId/:classificationId', verifyToken  , factoryService.getFactoriesByClassificationId);
+router.get('/getFactoriesByClassificationId/:classificationId', verifyToken  ,checkPermission('factory.read'), factoryService.getFactoriesByClassificationId);
 
 
 // Update a factory by ID
-router.put('/updateFactory/:id', verifyToken  , validateFactory , factoryService.updateFactory);
+router.put('/updateFactory/:id', verifyToken  ,checkPermission('factory.read'), validateFactory , factoryService.updateFactory);
 
 // Delete a factory by ID
-router.delete('/deleteFactory/:id',  verifyToken  , factoryService.deleteFactory);
+router.delete('/deleteFactory/:id',  verifyToken  ,checkPermission('factory.read'), factoryService.deleteFactory);
 
 module.exports = router;

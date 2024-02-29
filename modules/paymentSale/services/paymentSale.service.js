@@ -17,7 +17,7 @@ exports.getAllPaymentSale = async (req, res, next) => {
   let query = {};
   let matchSale = {};
   if (!isAllow) {
-    query["saleId.userId"] = userId;
+    query["saleId.userId"] = new mongoose.Types.ObjectId(userId);
   }
   if (saleId) {
     query["saleId._id"] = new mongoose.Types.ObjectId(saleId);

@@ -5,6 +5,11 @@ const {verifyToken,checkPermission} = require('../../../middelware/auth.middlewa
 
 
 // Get all factories
-router.get('/getFactoryAccountLog', verifyToken  ,factoryAccountService.getFactoryAccountLog);
+router.get(
+  "/getFactoryAccountLog",
+  verifyToken,
+  checkPermission("factory.read"),
+  factoryAccountService.getFactoryAccountLog
+);
 
 module.exports = router;

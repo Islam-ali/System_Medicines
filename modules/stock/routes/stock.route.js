@@ -7,21 +7,21 @@ const {verifyToken,checkPermission} = require('../../../middelware/auth.middlewa
 router.get(
   "/getStock/:classificationId",
   verifyToken,
-  // checkPermission("stock.read"),
+  checkPermission("stock.read"),
   stockService.getStock
 );
 
 router.get(
   "/getStockById/:id",
   verifyToken,
-  // checkPermission("stock.read"),
+  checkPermission("stock.read"),
   stockService.getStockById
 );
 
 router.put(
   "/updateInfoInStock/:id",
   verifyToken,
-  // checkPermission("stock.update"),
+  checkPermission("stock.update"),
   stockService.updateInfoInStock
 );
 
@@ -29,7 +29,7 @@ router.put(
 router.put(
   "/transactionToBranchStock",
   verifyToken,
-  // checkPermission("stock.update"),
+  checkPermission("stock.update"),
   stockService.transactionToBranchStock
 );
 

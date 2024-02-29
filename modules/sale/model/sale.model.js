@@ -20,7 +20,7 @@ const saleSchema = new mongoose.Schema({
   date: { type: Date, required: true },
   // payment: { type: Number},
   discount: { type: Number, required: true },
-  bouns: { type: Number, required: true },
+  // bouns: { type: Number, required: true },
   salesQuantity: { type: Number, required: true },
   pharmacyPrice: { type: Number, required: true },
   salesValue: { type: Number, required: true }, // salesQuantity * pharmacyPrice

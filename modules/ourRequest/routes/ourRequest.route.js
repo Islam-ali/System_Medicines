@@ -18,7 +18,7 @@ router.get('/getOurRequestById/:id', verifyToken , checkPermission('ourRequest.r
 router.get(
   "/getOurRequestByFactoryId/:factoryId",
   verifyToken,
-  // checkPermission("ourRequest.read"),
+  checkPermission("ourRequest.read"),
   OurRequestService.getOurRequestByFactoryId
 );
 

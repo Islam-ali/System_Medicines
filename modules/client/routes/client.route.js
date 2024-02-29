@@ -4,22 +4,33 @@ const client = require('../services/client.service');
 const validateclient = require('../validation/client.validation')
 const {verifyToken,checkPermission} = require('../../../middelware/auth.middleware')
 
-router.get('/getAllClient' , verifyToken, checkPermission('user.create'),client.getAllClient);
+router.get('/getAllClient' , verifyToken, checkPermission('clients.read'),client.getAllClient);
 
-router.get('/getClientsByTypeOfClientId/:typeOfClientId' , verifyToken, checkPermission('user.create'),client.getClientsByTypeOfClientId);
+router.get('/getClientsByTypeOfClientId/:typeOfClientId' , verifyToken, checkPermission('clients.read'),client.getClientsByTypeOfClientId);
 
-router.get('/getClientById/:id' , verifyToken, checkPermission('user.create'),client.getClientById);
+router.get('/getClientById/:id' , verifyToken, checkPermission('clients.read'),client.getClientById);
 
-router.post('/createClient' , verifyToken , checkPermission('user.create') ,validateclient, client.createClient);
+router.post('/createClient' , verifyToken , checkPermission('clients.create') ,validateclient, client.createClient);
 
-router.put('/updateClient/:id' , verifyToken , checkPermission('user.create'),validateclient , client.updateClient);
+router.put(
+  "/updateClient/:id",
+  verifyToken,
+  checkPermission("clients.update"),
+  validateclient,
+  client.updateClient
+);
 
-router.delete('/deleteClient/:id' , verifyToken , checkPermission('user.create') , client.deleteClient);
+router.delete(
+  "/deleteClient/:id",
+  verifyToken,
+  checkPermission("clients.delete"),
+  client.deleteClient
+);
 
 router.get(
   "/getLogClient",
   verifyToken,
-  checkPermission("user.create"),
+  checkPermission("clients.create"),
   client.getLogClient
 );
 

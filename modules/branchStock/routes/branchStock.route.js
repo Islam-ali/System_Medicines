@@ -7,14 +7,14 @@ const {verifyToken,checkPermission} = require('../../../middelware/auth.middlewa
 router.get(
   "/getbranchStock",
   verifyToken,
-  // checkPermission("branchStock.read"),
+  checkPermission("branchStock.read"),
   branchStockService.getbranchStock
 );
 
 router.get(
   "/getAllBranchStock",
   verifyToken,
-  // checkPermission("branchStock.read"),
+  checkPermission("branchStock.read"),
   branchStockService.getAllBranchStock
 );
 module.exports = router;

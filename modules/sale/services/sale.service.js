@@ -46,9 +46,9 @@ exports.getAllSale = async (req, res, next) => {
 exports.getAllSalesByClientId = async (req, res, next) => {
   try {
     const clientId = req.params.clientId;
-
+    const userId = req.userId;
     const allSales = await saleModel
-      .find({ clientId, deleted: false })
+      .find({ clientId, userId, deleted: false })
       .populate({
         path: "userId",
         model: "users",
@@ -161,7 +161,7 @@ exports.createSale = async (req, res, next) => {
       received: 0,
       pharmacyPrice: pharmacyPrice,
       salesValue: salesValue,
-      balance: 0,
+      balance: salesValue,
       netProfit: netProfit,
       totalNetProfit: totalNetProfit,
       realProfit: 0,

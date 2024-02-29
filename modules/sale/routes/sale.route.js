@@ -4,18 +4,24 @@ const sale = require('../services/sale.service');
 const validateSale = require('../validation/sale.validation')
 const {verifyToken,checkPermission} = require('../../../middelware/auth.middleware')
 
-router.get('/getAllSale' , verifyToken, checkPermission('user.create'),sale.getAllSale);
+router.get('/getAllSale' , verifyToken, checkPermission('sale.read'),sale.getAllSale);
 
-router.get('/getAllSalesByClientId/:clientId' , verifyToken, checkPermission('user.create'),sale.getAllSalesByClientId);
+router.get('/getAllSalesByClientId/:clientId' , verifyToken, checkPermission('sale.read'),sale.getAllSalesByClientId);
 
 
-router.get('/getSaleById/:Id' , verifyToken, checkPermission('user.create'),sale.getSaleById);
+router.get('/getSaleById/:Id' , verifyToken, checkPermission('sale.read'),sale.getSaleById);
 
-router.post('/createSale' , verifyToken , checkPermission('user.create') ,validateSale, sale.createSale);
+router.post('/createSale' , verifyToken , checkPermission('sale.create') ,validateSale, sale.createSale);
 
-router.put('/updateSale/:id' , verifyToken , checkPermission('user.create'),validateSale , sale.updateSale);
+router.put(
+  "/updateSale/:id",
+  verifyToken,
+  checkPermission("sale.update"),
+  validateSale,
+  sale.updateSale
+);
 
-router.delete('/deleteSale/:id' , verifyToken , checkPermission('user.create') , sale.deleteSale);
+router.delete('/deleteSale/:id' , verifyToken , checkPermission('sale.delete') , sale.deleteSale);
 
 
 module.exports = router;

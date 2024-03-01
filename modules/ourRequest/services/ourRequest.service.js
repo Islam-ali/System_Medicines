@@ -8,6 +8,7 @@ const PaymentForFactoryModel = require("../../PaymentForFactories/model/paymentF
 const FactoryModel = require("../../factory/model/factory.model");
 const { json } = require("express");
 const branchStock = require("../../branchStock/model/branchStock.model");
+const logStock = require("../../stock/model/logStock.model");
 class calculate {
   constructor() {}
 
@@ -15,9 +16,9 @@ class calculate {
     return unitsNumber * unitsCost;
   }
 
-  checkNumber(number) {
-    return number > 0 ? 1 : number < 0 ? -1 : 0;
-  }
+  // checkNumber(number) {
+  //   return number > 0 ? 1 : number < 0 ? -1 : 0;
+  // }
 }
 // Create a new OurRequest
 exports.createOurRequest = async (req, res) => {
@@ -68,8 +69,7 @@ exports.createOurRequest = async (req, res) => {
             });
           }
           const newUnitsNumber = stock.unitsNumber - material.unitsNumber;
-          const checkNumber = new calculate().checkNumber(newUnitsNumber);
-          if (checkNumber == -1) {
+          if (newUnitsNumber < 0) {
             return res.status(400).json({
               statusCode: res.statusCode,
               message: `The required number of units in the ${stock.itemName} is not available in stock`,
@@ -392,13 +392,6 @@ exports.changeOrderStatus = async (req, res) => {
       });
     }
 
-    const filter = { _id: req.params.id };
-    const updateDocument = {
-      $set: { orderStatus: req.body.orderStatus },
-    };
-
-    await OurRequest.updateOne(filter, updateDocument);
-
     // const objFactory = await FactoryModel.findOne({
     //   _id: objItemFactory.factoryId,
     // }).populate("typeOfFactoryId");
@@ -427,7 +420,22 @@ exports.changeOrderStatus = async (req, res) => {
       // if(objStock){
       //   await stockModel.create(stockRequest);
       // }else
-      await stockRequest.save();
+      const filter = { _id: req.params.id };
+      const updateDocument = {
+        $set: { orderStatus: req.body.orderStatus },
+      };
+
+      await OurRequest.updateOne(filter, updateDocument);
+      await stockRequest.save().then(async (result) => {
+        const objLogStock = new logStock({
+          stockId: result._id,
+          unitsNumber: objOurRequest.unitsNumber,
+          unitsCost: objOurRequest.unitsCost,
+          totalcost: objOurRequest.totalcost,
+          insertDate: new Date(),
+        });
+        await objLogStock.save();
+      });
     }
     // if (req.body.orderStatus == orderStatusEnum.RETURN) {
     //   await stockModel.deleteOne({ ourRequestId: objOurRequest._id }).then(async(result)=>{

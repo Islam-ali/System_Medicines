@@ -11,6 +11,14 @@ router.get(
   stockService.getStock
 );
 
+// Get all factories
+router.get(
+  "/getStockByClassificationId/:classificationId",
+  verifyToken,
+  checkPermission("stock.read"),
+  stockService.getStockByClassificationId
+);
+
 router.get(
   "/getStockById/:id",
   verifyToken,

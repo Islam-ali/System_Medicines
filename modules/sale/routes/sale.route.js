@@ -4,7 +4,12 @@ const sale = require('../services/sale.service');
 const validateSale = require('../validation/sale.validation')
 const {verifyToken,checkPermission} = require('../../../middelware/auth.middleware')
 
-router.get('/getAllSale' , verifyToken, checkPermission('sale.read'),sale.getAllSale);
+router.get(
+  "/getAllSales",
+  verifyToken,
+  checkPermission("sale.read"),
+  sale.getAllSales
+);
 
 router.get('/getAllSalesByClientId/:clientId' , verifyToken, checkPermission('sale.read'),sale.getAllSalesByClientId);
 

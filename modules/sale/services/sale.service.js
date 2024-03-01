@@ -7,29 +7,63 @@ const { validationResult } = require("express-validator");
 const convertArray = require("../../../core/shared/errorForm");
 const methodTypeEnum = require("../../../core/enums/methoType.enum");
 const typeLogClientEnum = require("../../../core/enums/typeLogClient.enum");
+const UserRole = require("../../../core/enums/role.enum");
+const mongoose = require("mongoose");
 
 // get All type of Factories
-exports.getAllSale = async (req, res, next) => {
+exports.getAllSales = async (req, res, next) => {
   try {
-    const allSale = await saleModel
-      .find({ deleted: false })
-      .populate({
-        path: "userId",
-        model: "users",
-        select: "-password -roleId",
-      })
-      .populate({
-        path: "branchStockId",
-        model: "branchStock",
-        populate: {
-          path: "stockId",
-          model: "Stock",
+    let query = {};
+    const clientId = req.query.clientId;
+    const userId = req.userId;
+    const isAllow = req.roleName == UserRole.ADMIN;
+    if (!isAllow) {
+      query["userId"] = new mongoose.Types.ObjectId(userId);
+    }
+    if (clientId) {
+      query["clientId"] = new mongoose.Types.ObjectId(clientId);
+    }
+    const allSale = await saleModel.aggregate([
+      {
+        $match: query,
+      },
+      {
+        $lookup: {
+          from: "branchstocks",
+          localField: "branchStockId",
+          foreignField: "_id",
+          as: "branchStockId", // This is the additional lookup
         },
-      })
-      .populate({
-        path: "clientId",
-        model: "client",
-      });
+      },
+      { $unwind: "$branchStockId" }, // Unwind the new field
+      {
+        $lookup: {
+          from: "stocks",
+          localField: "branchStockId.stockId",
+          foreignField: "_id",
+          as: "branchStockId.stockId",
+        },
+      },
+      { $unwind: "$branchStockId.stockId" },
+      {
+        $lookup: {
+          from: "users",
+          localField: "userId",
+          foreignField: "_id",
+          as: "userId",
+        },
+      },
+      { $unwind: "$userId" },
+      {
+        $lookup: {
+          from: "clients",
+          localField: "clientId",
+          foreignField: "_id",
+          as: "clientId",
+        },
+      },
+      { $unwind: "$clientId" },
+    ]);
     res.status(200).json({
       statusCode: res.statusCode,
       message: "successfully",
@@ -115,9 +149,11 @@ exports.createSale = async (req, res, next) => {
     });
   }
   try {
+    const isAllow = req.roleName == UserRole.ADMIN;
+    const userId = isAllow ? body.userId : req.userId;
     const objBranchStock = await branchStockModel
       .findOne({
-        userId: body.userId,
+        userId: userId,
         _id: body.branchStockId,
       })
       .populate({
@@ -151,7 +187,7 @@ exports.createSale = async (req, res, next) => {
     const newSale = new saleModel({
       branchStockId: body.branchStockId,
       clientId: body.clientId,
-      userId: body.userId,
+      userId: userId,
       date: body.date,
       discount: body.discount || 0,
       bouns: body.bouns || 0,
@@ -220,6 +256,8 @@ exports.updateSale = async (req, res, next) => {
     });
   }
   try {
+    const isAllow = req.roleName == UserRole.ADMIN;
+    const userId = isAllow ? body.userId : req.userId;
     const objSale = await saleModel.findById(saleId);
     if (!objSale) {
       return res.status(404).json({
@@ -230,7 +268,7 @@ exports.updateSale = async (req, res, next) => {
     const CopyObjSale = JSON.parse(JSON.stringify(objSale));
     const objBranchStock = await branchStockModel
       .findOne({
-        userId: body.userId,
+        userId: userId,
         _id: body.branchStockId,
       })
       .populate({
@@ -274,7 +312,7 @@ exports.updateSale = async (req, res, next) => {
     // update Sale
     objSale.branchStockId = body.branchStockId;
     objSale.clientId = body.clientId;
-    (objSale.userId = body.userId), (objSale.date = body.date);
+    (objSale.userId = userId), (objSale.date = body.date);
     objSale.discount = body.discount || 0;
     objSale.bouns = body.bouns || 0;
     objSale.salesQuantity = body.salesQuantity;
@@ -286,7 +324,7 @@ exports.updateSale = async (req, res, next) => {
     objSale.balance = salesValue - objSale.received;
     objSale.netProfit = netProfit;
     objSale.totalNetProfit = totalNetProfit;
-    objSale.realProfit = objSale.received - objSale.totalNetProfit ;
+    objSale.realProfit = objSale.received - objSale.totalNetProfit;
 
     // update branch stock
     objBranchStock.unitsNumber =
@@ -387,25 +425,25 @@ exports.deleteSale = async (req, res) => {
       // objStock.save(),
       paymentSaleModel.deleteMany({ saleId: objSale._id }),
     ]).then(async (result) => {
-        const objLogClient = {
-          clientId: result[0].clientId,
-          saleId: result[0]._id,
-          creationBy: req.userId,
-          beforUpdateSale: CopyObjSale,
-          afterUpdateSale: null,
-          type: typeLogClientEnum.SALE,
-          methodName: methodTypeEnum.DELETE,
-          creationDate: new Date(),
-        };
-        await logClientModel.create(objLogClient);
-      })
-      // .catch((error) => {
-      //   res.status(400).json({
-      //     statusCode: res.statusCode,
-      //     message: "failed",
-      //     error: error,
-      //   });
-      // });
+      const objLogClient = {
+        clientId: result[0].clientId,
+        saleId: result[0]._id,
+        creationBy: req.userId,
+        beforUpdateSale: CopyObjSale,
+        afterUpdateSale: null,
+        type: typeLogClientEnum.SALE,
+        methodName: methodTypeEnum.DELETE,
+        creationDate: new Date(),
+      };
+      await logClientModel.create(objLogClient);
+    });
+    // .catch((error) => {
+    //   res.status(400).json({
+    //     statusCode: res.statusCode,
+    //     message: "failed",
+    //     error: error,
+    //   });
+    // });
     res.status(201).json({
       statusCode: res.statusCode,
       message: "deleted Sale successfully",

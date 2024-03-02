@@ -137,7 +137,6 @@ exports.getLogStock = async (req, res) => {
   }
 };
 
-
 exports.getStockById = async (req, res) => {
   try {
     const objStock = await stockModel
@@ -224,6 +223,48 @@ exports.transactionToBranchStock = async (req, res) => {
     res.status(201).json({
       statusCode: res.statusCode,
       message: "transaction successfully",
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+exports.transactionFromBranchStockToStock = async (req, res) => {
+  try {
+    const branchStockId = req.params.branchStockId;
+
+    // Find the branch stock
+    const objBranchStockModel = await branchStockModel.findOne({
+      _id: branchStockId,
+    });
+
+    if (!objBranchStockModel) {
+      return res.status(404).json({ message: "Branch stock not found" });
+    }
+
+    if(objBranchStockModel.unitsNumber === 0){
+      return res.status(404).json({ message: "not Found units Number" });
+    }
+    // Find the stock associated with the branch stock
+    const objStock = await stockModel.findOne({
+      _id: objBranchStockModel.stockId,
+    });
+
+    if (!objStock) {
+      return res.status(404).json({ message: "Stock not found" });
+    }
+
+    // Update stock information
+    objStock.unitsNumber += objBranchStockModel.unitsNumber;
+    objStock.totalcost = objStock.unitsNumber * objStock.unitsCost;
+
+    objBranchStockModel.unitsNumber -= objBranchStockModel.unitsNumber;
+    // Delete the branch stock and save the updated stock
+    await Promise.all([objBranchStockModel.save(), objStock.save()]);
+
+    return res.status(201).json({
+      statusCode: res.statusCode,
+      message: "Transaction successful",
     });
   } catch (error) {
     res.status(500).json({ message: error.message });

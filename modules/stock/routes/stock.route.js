@@ -41,6 +41,12 @@ router.put(
   stockService.transactionToBranchStock
 );
 
+router.put(
+  "/transactionFromBranchStockToStock/:branchStockId",
+  verifyToken,
+  checkPermission("stock.update"),
+  stockService.transactionFromBranchStockToStock
+);
 // Get all factories
 router.get(
   "/getLogStock",

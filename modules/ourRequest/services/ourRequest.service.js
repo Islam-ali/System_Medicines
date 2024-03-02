@@ -7,8 +7,10 @@ const stockModel = require("../../stock/model/stock.model");
 const PaymentForFactoryModel = require("../../PaymentForFactories/model/paymentForFactories.model");
 const FactoryModel = require("../../factory/model/factory.model");
 const { json } = require("express");
-const branchStock = require("../../branchStock/model/branchStock.model");
+const branchStockModel = require("../../branchStock/model/branchStock.model");
 const logStock = require("../../stock/model/logStock.model");
+const mongoose = require("mongoose");
+
 class calculate {
   constructor() {}
 
@@ -110,7 +112,16 @@ exports.createOurRequest = async (req, res) => {
 // Get all Our Request
 exports.getAllOurRequests = async (req, res) => {
   try {
+    let query = {};
     const classificationId = req.query.classificationId;
+    const factoryId = req.query.factoryId;
+    if (classificationId) {
+      query["typeOfFactoryId.classificationId"] = parseInt(classificationId);
+    }
+    if (factoryId) {
+      query["factoryId._id"] = new mongoose.Types.ObjectId(req.query.factoryId);
+    }
+    console.log(query);
     const ourRequests = await OurRequest.aggregate([
       {
         $lookup: {
@@ -131,45 +142,56 @@ exports.getAllOurRequests = async (req, res) => {
       },
       { $unwind: "$typeOfFactoryId" },
       {
-        $match: {
-          "typeOfFactoryId.classificationId": parseInt(classificationId),
-        },
+        $match: query,
       },
     ]);
 
-    processRequests(ourRequests, res);
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-};
-
-const processRequests = async (listOfOurRequests, res) => {
-  let mapResponse = [];
-  try {
-    for (let i = 0; i < listOfOurRequests.length; i++) {
-      const PaymentForFactories = await PaymentForFactoryModel.find({
-        ourRequestId: listOfOurRequests[i]._id,
-      }).populate({
-        path: "ourRequestId",
-      });
-      listOfOurRequests[i]["listOfPayments"] = PaymentForFactories;
-      let objour = JSON.parse(JSON.stringify(listOfOurRequests[i]));
-      let obj = {
-        ...objour,
-        listOfPayments: PaymentForFactories,
-      };
-      mapResponse.push(obj);
+    // Iterate through each OurRequest document
+    for (const request of ourRequests) {
+      // Find all PaymentForFactory documents associated with the current OurRequest
+      const payments = await PaymentForFactoryModel.find({
+        ourRequestId: request._id,
+      }).lean();
+      // Add the found payments to the current OurRequest document
+      request.listOfPayments = payments;
     }
-
     res.status(200).json({
       statusCode: res.statusCode,
-      message: "Successfully fetched data",
-      data: mapResponse.reverse(),
+      message: "successfully",
+      data: ourRequests.reverse(),
     });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
+
+// const processRequests = async (listOfOurRequests, res) => {
+//   let mapResponse = [];
+//   try {
+//     for (let i = 0; i < listOfOurRequests.length; i++) {
+//       const PaymentForFactories = await PaymentForFactoryModel.find({
+//         ourRequestId: listOfOurRequests[i]._id,
+//       }).populate({
+//         path: "ourRequestId",
+//       });
+//       listOfOurRequests[i]["listOfPayments"] = PaymentForFactories;
+//       let objour = JSON.parse(JSON.stringify(listOfOurRequests[i]));
+//       let obj = {
+//         ...objour,
+//         listOfPayments: PaymentForFactories,
+//       };
+//       mapResponse.push(obj);
+//     }
+
+//     res.status(200).json({
+//       statusCode: res.statusCode,
+//       message: "Successfully fetched data",
+//       data: mapResponse.reverse(),
+//     });
+//   } catch (error) {
+//     res.status(500).json({ message: error.message });
+//   }
+// };
 // Get Our Request by ID
 exports.getOurRequestById = async (req, res) => {
   try {
@@ -190,33 +212,33 @@ exports.getOurRequestById = async (req, res) => {
 };
 
 // Get Our Request by factoryId
-exports.getOurRequestByFactoryId = async (req, res) => {
-  try {
-    let listOfOurRequests = await OurRequest.find({
-      factoryId: req.params.factoryId,
-    })
-      .populate({
-        path: "itemFactoryId",
-        model: "ItemsFactory",
-        select: "name",
-      })
-      .populate({
-        path: "factoryId",
-        model: "Factory",
-        select: "name",
-      });
+// exports.getOurRequestByFactoryId = async (req, res) => {
+//   try {
+//     let listOfOurRequests = await OurRequest.find({
+//       factoryId: req.params.factoryId,
+//     })
+//       .populate({
+//         path: "itemFactoryId",
+//         model: "ItemsFactory",
+//         select: "name",
+//       })
+//       .populate({
+//         path: "factoryId",
+//         model: "Factory",
+//         select: "name",
+//       });
 
-    if (listOfOurRequests.length == 0) {
-      return res
-        .status(404)
-        .json({ message: "Our Requests not found", data: [] });
-    }
+//     if (listOfOurRequests.length == 0) {
+//       return res
+//         .status(404)
+//         .json({ message: "Our Requests not found", data: [] });
+//     }
 
-    processRequests(listOfOurRequests, res);
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-};
+//     processRequests(listOfOurRequests, res);
+//   } catch (error) {
+//     res.status(500).json({ message: error.message });
+//   }
+// };
 
 // Get Our Request by factoryId
 exports.getOueRequestByItemsFactoryId = async (req, res) => {
@@ -469,14 +491,37 @@ exports.deleteOurRequest = async (req, res) => {
     if (listPaymentForFactory.length > 0) {
       return res.status(400).json({
         statusCode: res.statusCode,
-        message: "There is a payment that cannot be deleted",
+        message: "There is a OurRequest that cannot be deleted",
       });
     }
+    const objStockModel = await stockModel.findOne({
+      ourRequestId: req.params.id,
+    });
+    if (objStockModel) {
+      if (objOurRequest.unitsNumber !== objStockModel.unitsNumber) {
+        return res.status(400).json({
+          statusCode: res.statusCode,
+          message: "There is a units Number in OurRequest Not Equal units Number in Stock",
+        });
+      }
+    }
+
+    // if(objStockModel){
+    //   const objBranchStockModel = await branchStockModel.findOne({
+    //     stockId: objStockModel._id,
+    //   });
+    //   if(objBranchStockModel){
+    //     return res.status(400).json({
+    //       statusCode: res.statusCode,
+    //       message: "There is a OurRequest that cannot be deleted",
+    //     });
+    //   }
+    // }
     // stock = await stockModel.findOne({
     //   ourRequestId: objOurRequest._id,
     // });
 
-    if (objOurRequest.listOfMaterials.length > 0 && false) {
+    if (objOurRequest.listOfMaterials.length > 0) {
       // old stock
       for (const material of objOurRequest.listOfMaterials) {
         const stockMaterial = await stockModel.findOne({

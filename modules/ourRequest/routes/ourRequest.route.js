@@ -15,12 +15,12 @@ router.get('/getAllOurRequests', verifyToken , checkPermission('ourRequest.read'
 router.get('/getOurRequestById/:id', verifyToken , checkPermission('ourRequest.read') , OurRequestService.getOurRequestById );
 
 // Get Our Request by FactoryId
-router.get(
-  "/getOurRequestByFactoryId/:factoryId",
-  verifyToken,
-  checkPermission("ourRequest.read"),
-  OurRequestService.getOurRequestByFactoryId
-);
+// router.get(
+//   "/getOurRequestByFactoryId/:factoryId",
+//   verifyToken,
+//   checkPermission("ourRequest.read"),
+//   OurRequestService.getOurRequestByFactoryId
+// );
 
 // Get Our Request by itemsFactoryId
 router.get(

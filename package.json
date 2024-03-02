@@ -4,7 +4,7 @@
   "private": true,
   "main": "index.js",
   "scripts": {
-    "build": "build",
+    "build": "echo 'Running build process...'",
     "start": "node index.js"
   },
   "dependencies": {

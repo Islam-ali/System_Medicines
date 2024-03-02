@@ -12,7 +12,7 @@ function verifyToken(req, res, next) {
     return res.status(403).json({ message: "Token not provided" });
   }
 
-  jwt.verify(token, env.process.JWT_SECRET, (err, decoded) => {
+  jwt.verify(token, env.JWT_SECRET, (err, decoded) => {
     if (err) {
       return res.status(401).json({ message: "Unauthorized" });
     }

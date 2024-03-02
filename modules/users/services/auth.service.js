@@ -81,7 +81,7 @@ exports.login = async (req, res) => {
     };
     const token = jwt.sign(
       payload,
-      env.process.JWT_SECRET,{ algorithm: 'HS256' },
+      env.JWT_SECRET,{ algorithm: 'HS256' },
       {
         expiresIn: expiresInOneYear,
       }

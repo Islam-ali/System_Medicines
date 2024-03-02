@@ -2,9 +2,16 @@
   "name": "system-medicines",
   "version": "0.0.0",
   "private": true,
+  "main": "index.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/cyclic-software/starter-express-api.git"
+  },
+  "author": "",
+  "license": "ISC",
   "scripts": {
     "build": "build --config webpack.config.js",
-    "start": "node ./bin/www"
+    "start": "node index.js"
   },
   "dependencies": {
     "@netlify/functions": "^2.6.0",

@@ -2,16 +2,10 @@
   "name": "system-medicines",
   "version": "0.0.0",
   "private": true,
-  "main": "index.js",
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/cyclic-software/starter-express-api.git"
-  },
-  "author": "",
-  "license": "ISC",
   "scripts": {
-    "build": "build --config webpack.config.js",
-    "start": "node index.js"
+    "vercel-build": "node ./index.js",
+    "build": "build",
+    "start": "node ./bin/www"
   },
   "dependencies": {
     "@netlify/functions": "^2.6.0",
@@ -30,12 +24,5 @@
     "mongoose": "^8.0.3",
     "morgan": "~1.9.1",
     "serverless-http": "^3.2.0"
-  },
-  "devDependencies": {
-    "@babel/core": "^7.24.0",
-    "@babel/preset-env": "^7.24.0",
-    "babel-loader": "^9.1.3",
-    "webpack": "^5.90.3",
-    "webpack-cli": "^5.1.4"
   }
 }

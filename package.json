@@ -2,10 +2,10 @@
   "name": "system-medicines",
   "version": "0.0.0",
   "private": true,
+  "main": "index.js",
   "scripts": {
-    "vercel-build": "node ./index.js",
     "build": "build",
-    "start": "node ./bin/www"
+    "start": "node index.js"
   },
   "dependencies": {
     "@netlify/functions": "^2.6.0",

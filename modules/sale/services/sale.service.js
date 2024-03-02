@@ -420,7 +420,7 @@ exports.deleteSale = async (req, res) => {
     // objStock.unitsNumber = objStock.unitsNumber + objSale.salesQuantity;
     // objStock.totalcost = objStock.unitsNumber * objStock.unitsCost;
     await Promise.all([
-      saleModel.findByIdAndUpdate(req.params.id, { deleted: true }),
+      saleModel.deleteOne(req.params.id),
       objBranchStock.save(),
       // objStock.save(),
       paymentSaleModel.deleteMany({ saleId: objSale._id }),

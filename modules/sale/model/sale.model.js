@@ -29,10 +29,10 @@ const saleSchema = new mongoose.Schema({
   netProfit: { type: Number, required: true }, // pharmacyPrice - factoryPrice
   totalNetProfit: { type: Number, required: true }, // received - (salesQuantity - factoryPrice)
   realProfit: { type: Number, required: true }, // received - (salesQuantity - factoryPrice)
-  deleted: {
-    type: Boolean,
-    default: false,
-  },
+  // deleted: {
+  //   type: Boolean,
+  //   default: false,
+  // },
 });
 
 

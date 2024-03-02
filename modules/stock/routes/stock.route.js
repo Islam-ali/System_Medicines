@@ -41,4 +41,12 @@ router.put(
   stockService.transactionToBranchStock
 );
 
+// Get all factories
+router.get(
+  "/getLogStock",
+  verifyToken,
+  checkPermission("stock.read"),
+  stockService.getLogStock
+);
+
 module.exports = router;

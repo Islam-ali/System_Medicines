@@ -40,6 +40,12 @@ router.put(
   OurRequestService.changeOrderStatus
 );
 
+router.put(
+  "/deleteItemMaterials/:id",
+  verifyToken,
+  checkPermission("ourRequest.update"),
+  OurRequestService.deleteItemMaterials
+);
 
 // Delete a factory by ID
 router.delete('/deleteOurRequest/:id',  verifyToken , checkPermission('ourRequest.delete') , OurRequestService.deleteOurRequest);

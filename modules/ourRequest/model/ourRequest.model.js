@@ -13,7 +13,7 @@ const ourRequestSchema = new mongoose.Schema({
   },
   orderStatus: {
     type: String,
-    enum: [OrderStatus.PENDDING, OrderStatus.RECIVED],
+    enum: [OrderStatus.PENDDING, OrderStatus.RECIVED , OrderStatus.RETURN],
     default: OrderStatus.PENDDING,
   },
   unitsNumber: { type: Number, required: true },
@@ -37,11 +37,15 @@ const ourRequestSchema = new mongoose.Schema({
       },
       itemFactoryId: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: "ItemsFactory",
+        ref: "stocks",
       },
       unitsNumber: {
         type: Number,
         required: true,
+      },
+      _id: {
+        type: mongoose.Schema.Types.ObjectId,
+        required: true
       },
     },
   ],

@@ -1,6 +1,9 @@
 const stockModel = require("../model/stock.model");
 const branchStockModel = require("../../branchStock/model/branchStock.model");
 const logStock = require("../model/logStock.model");
+const mongoose = require("mongoose");
+const ourRequest = require("../../ourRequest/model/ourRequest.model");
+const OrderStatus = require("../../../core/enums/OrderStatus.enum");
 
 // Get Factory Stock
 exports.getStock = async (req, res) => {
@@ -65,18 +68,51 @@ exports.getStock = async (req, res) => {
 // Get Factory Stock
 exports.getStockByClassificationId = async (req, res) => {
   try {
-    const listOfStock = await stockModel
-      .find({
-        classificationId: req.params.classificationId,
-      })
-      .populate({
-        path: "ourRequestId",
-        populate: {
-          path: "itemFactoryId",
-          model: "ItemsFactory",
-          select: "name -_id",
+    let query = {};
+    const factoryId = req.query.factoryId;
+    if (factoryId) {
+      query["factoryId._id"] = new mongoose.Types.ObjectId(factoryId);
+    }
+
+    const listOfStock = await stockModel.aggregate([
+      {
+        $lookup: {
+          from: "ourrequests",
+          localField: "ourRequestId",
+          foreignField: "_id",
+          as: "ourRequestId",
         },
-      });
+      },
+      { $unwind: "$ourRequestId" },
+      {
+        $lookup: {
+          from: "factories",
+          localField: "ourRequestId.factoryId",
+          foreignField: "_id",
+          as: "factoryId",
+        },
+      },
+      { $unwind: "$factoryId" },
+      {
+        $match: query,
+      },
+      {
+        $lookup: {
+          from: "typeoffactories",
+          localField: "factoryId.typeOfFactoryId",
+          foreignField: "_id",
+          as: "typeOfFactoryId",
+        },
+      },
+      { $unwind: "$typeOfFactoryId" },
+      {
+        $match: {
+          "typeOfFactoryId.classificationId": parseInt(
+            req.params.classificationId
+          ),
+        },
+      },
+    ]);
     res.status(200).json({
       statusCode: res.statusCode,
       message: "successfully",
@@ -193,6 +229,64 @@ exports.updateInfoInStock = async (req, res) => {
   }
 };
 
+exports.returnOurRequest = async (req, res) => {
+  try {
+    const objStock = await stockModel.aggregate([
+      {
+        $lookup: {
+          from: "ourrequests",
+          localField: "ourRequestId",
+          foreignField: "_id",
+          as: "ourRequestId",
+        },
+      },
+      { $unwind: "$ourRequestId" },
+      {
+        $lookup: {
+          from: "factories",
+          localField: "ourRequestId.factoryId",
+          foreignField: "_id",
+          as: "factoryId",
+        },
+      },
+      { $unwind: "$factoryId" }
+    ]);
+
+    if (!objStock[0]) {
+      return res.status(404).json({ message: "Stock not found" });
+    }
+
+    console.log(objStock[0]);
+    if (objStock[0].ourRequestId.unitsNumber !== objStock[0].unitsNumber) {
+      return res.status(400).json({ message: "can't Return" });
+    }
+    const filter = { _id: objStock[0].ourRequestId._id };
+    const updateDocument = {
+      $set: { orderStatus: OrderStatus.RETURN },
+    };
+    await ourRequest.updateOne(filter, updateDocument).then(async (result) => {
+      await stockModel.deleteOne({ _id: req.params.id });
+      const objLogStock = new logStock({
+        stockId: result._id,
+        itemName: objStock[0].ourRequestId.itemName,
+        factoryName: objStock[0].factoryId.name,
+        unitsNumber: objStock[0].ourRequestId.unitsNumber,
+        unitsCost: objStock[0].ourRequestId.unitsCost,
+        totalcost: objStock[0].ourRequestId.totalcost,
+        orderStatus: OrderStatus.RECIVED,
+        insertDate: new Date(),
+      });
+      await objLogStock.save();
+      res.status(201).json({
+        statusCode: res.statusCode,
+        message: "Return successfully",
+      });
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 exports.transactionToBranchStock = async (req, res) => {
   const { stockId, unitsNumber, userId, date, publicPrice } = req.body;
   if (!stockId || !unitsNumber || !userId || !date || !publicPrice) {
@@ -242,7 +336,7 @@ exports.transactionFromBranchStockToStock = async (req, res) => {
       return res.status(404).json({ message: "Branch stock not found" });
     }
 
-    if(objBranchStockModel.unitsNumber === 0){
+    if (objBranchStockModel.unitsNumber === 0) {
       return res.status(404).json({ message: "not Found units Number" });
     }
     // Find the stock associated with the branch stock

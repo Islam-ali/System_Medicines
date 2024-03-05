@@ -6,8 +6,6 @@ const orderStatusEnum = require("../../../core/enums/OrderStatus.enum");
 const stockModel = require("../../stock/model/stock.model");
 const PaymentForFactoryModel = require("../../PaymentForFactories/model/paymentForFactories.model");
 const FactoryModel = require("../../factory/model/factory.model");
-const { json } = require("express");
-const branchStockModel = require("../../branchStock/model/branchStock.model");
 const logStock = require("../../stock/model/logStock.model");
 const mongoose = require("mongoose");
 
@@ -17,10 +15,6 @@ class calculate {
   totalCost(unitsNumber, unitsCost) {
     return unitsNumber * unitsCost;
   }
-
-  // checkNumber(number) {
-  //   return number > 0 ? 1 : number < 0 ? -1 : 0;
-  // }
 }
 // Create a new OurRequest
 exports.createOurRequest = async (req, res) => {
@@ -60,9 +54,10 @@ exports.createOurRequest = async (req, res) => {
     let stock = {};
     if (classificationId == 2) {
       if (body.listOfMaterials.length > 0) {
-        for (const material of body.listOfMaterials) {
+        body.listOfMaterials.forEach(async (material, index) => {
+          material._id = new mongoose.Types.ObjectId();
           stock = await stockModel.findOne({
-            itemFactoryId: material.itemFactoryId,
+            _id: material.itemFactoryId,
           });
           if (!stock) {
             return res.status(400).json({
@@ -82,17 +77,18 @@ exports.createOurRequest = async (req, res) => {
               stock.unitsCost
             );
             await stockModel.updateOne(
-              { itemFactoryId: material.itemFactoryId },
+              { _id: material.itemFactoryId },
               { $set: { unitsNumber: newUnitsNumber, totalcost: newTotalCost } }
             );
           }
-        }
-      } else {
-        return res.status(400).json({
-          statusCode: res.statusCode,
-          message: "must be Add row Materials",
         });
       }
+      // else {
+      //   return res.status(400).json({
+      //     statusCode: res.statusCode,
+      //     message: "must be Add row Materials",
+      //   });
+      // }
     }
 
     const mapBody = {
@@ -320,32 +316,32 @@ exports.updateOurRequest = async (req, res) => {
     }).populate("typeOfFactoryId");
 
     const classificationId = objFactory.typeOfFactoryId.classificationId;
-    let stock = {};
+    // let stock = {};
     if (classificationId == 2) {
       if (req.body.listOfMaterials.length > 0) {
         // old stock
         for (const material of objOurRequest.listOfMaterials) {
-          stock = await stockModel.findOne({
-            itemFactoryId: material.itemFactoryId,
+          const stock = await stockModel.findOne({
+            _id: material.itemFactoryId,
           });
           const newUnitsNumber = stock.unitsNumber + material.unitsNumber;
           const newTotalCost = new calculate().totalCost(
             newUnitsNumber,
             stock.unitsCost
           );
-          await stockModel.updateOne(
-            { itemFactoryId: material.itemFactoryId },
-            { $set: { unitsNumber: newUnitsNumber, totalcost: newTotalCost } }
-          );
+
+          stock.unitsNumber = newUnitsNumber;
+          stock.totalcost = newTotalCost;
+          await stock.save();
         }
         // new stock
         for (const material of req.body.listOfMaterials) {
-          stock = await stockModel.findOne({
-            itemFactoryId: material.itemFactoryId,
+          const stock = await stockModel.findOne({
+            _id: material.itemFactoryId,
           });
+          !material._id  ? material._id = new mongoose.Types.ObjectId() : null;
           const newUnitsNumber = stock.unitsNumber - material.unitsNumber;
-          const checkNumber = new calculate().checkNumber(newUnitsNumber);
-          if (checkNumber == -1) {
+          if (newUnitsNumber < 0) {
             return res.status(400).json({
               statusCode: res.statusCode,
               message: `The required number of units in the ${stock.itemName} is not available in stock`,
@@ -355,10 +351,9 @@ exports.updateOurRequest = async (req, res) => {
               newUnitsNumber,
               stock.unitsCost
             );
-            await stockModel.updateOne(
-              { itemFactoryId: material.itemFactoryId },
-              { $set: { unitsNumber: newUnitsNumber, totalcost: newTotalCost } }
-            );
+            stock.unitsNumber = newUnitsNumber;
+            stock.totalcost = newTotalCost;
+            await stock.save();
           }
         }
       } else {
@@ -414,10 +409,6 @@ exports.changeOrderStatus = async (req, res) => {
       });
     }
 
-    // const objFactory = await FactoryModel.findOne({
-    //   _id: objItemFactory.factoryId,
-    // }).populate("typeOfFactoryId");
-
     const classificationId =
       objOurRequest.itemFactoryId.factoryId.typeOfFactoryId.classificationId;
 
@@ -437,11 +428,6 @@ exports.changeOrderStatus = async (req, res) => {
         expDate: "",
       });
 
-      // send to Stock if (orderStatus == RECIVED)
-      // const objStock = await stockModel.findOne({ourRequestId:objOurRequest._id});
-      // if(objStock){
-      //   await stockModel.create(stockRequest);
-      // }else
       const filter = { _id: req.params.id };
       const updateDocument = {
         $set: { orderStatus: req.body.orderStatus },
@@ -451,20 +437,18 @@ exports.changeOrderStatus = async (req, res) => {
       await stockRequest.save().then(async (result) => {
         const objLogStock = new logStock({
           stockId: result._id,
+          itemName: objOurRequest.itemName,
+          factoryName: objOurRequest.itemFactoryId.factoryId.name,
           unitsNumber: objOurRequest.unitsNumber,
           unitsCost: objOurRequest.unitsCost,
           totalcost: objOurRequest.totalcost,
+          orderStatus: orderStatusEnum.RECIVED,
           insertDate: new Date(),
         });
         await objLogStock.save();
       });
     }
-    // if (req.body.orderStatus == orderStatusEnum.RETURN) {
-    //   await stockModel.deleteOne({ ourRequestId: objOurRequest._id }).then(async(result)=>{
-    //     let exist = await branchStock.find({stockId:result._id});
-    //     console.log("cccccc", exist, result);
-    //   });
-    // }
+
     res.status(201).json({
       statusCode: res.statusCode,
       message: "update Our Request successfully",
@@ -501,7 +485,8 @@ exports.deleteOurRequest = async (req, res) => {
       if (objOurRequest.unitsNumber !== objStockModel.unitsNumber) {
         return res.status(400).json({
           statusCode: res.statusCode,
-          message: "There is a units Number in OurRequest Not Equal units Number in Stock",
+          message:
+            "There is a units Number in OurRequest Not Equal units Number in Stock",
         });
       }
     }
@@ -525,17 +510,16 @@ exports.deleteOurRequest = async (req, res) => {
       // old stock
       for (const material of objOurRequest.listOfMaterials) {
         const stockMaterial = await stockModel.findOne({
-          itemFactoryId: material.itemFactoryId,
+          _id: material.itemFactoryId,
         });
         const newUnitsNumber = stockMaterial.unitsNumber + material.unitsNumber;
         const newTotalCost = new calculate().totalCost(
           newUnitsNumber,
           stockMaterial.unitsCost
         );
-        await stockModel.updateOne(
-          { itemFactoryId: material.itemFactoryId },
-          { $set: { unitsNumber: newUnitsNumber, totalcost: newTotalCost } }
-        );
+        stockMaterial.unitsNumber = newUnitsNumber;
+        stockMaterial.totalcost = newTotalCost;
+        await stockMaterial.save();
       }
     }
     // return res.json({stock})
@@ -553,6 +537,46 @@ exports.deleteOurRequest = async (req, res) => {
     res.status(201).json({
       statusCode: res.statusCode,
       message: "delete Our Request successfully",
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+exports.deleteItemMaterials = async (req, res) => {
+  try {
+    const body = req.body;
+    const filter = { _id: req.params.id };
+    const objOurRequest = await OurRequest.findOne(filter);
+    if (!objOurRequest) {
+      return res.status(404).json({
+        statusCode: res.statusCode,
+        message: "Not Found Item",
+      });
+    }
+
+    const stockMaterial = await stockModel.findOne({
+      _id: body.itemFactoryId,
+    });
+    const newUnitsNumber = stockMaterial.unitsNumber + body.unitsNumber;
+    const newTotalCost = new calculate().totalCost(
+      newUnitsNumber,
+      stockMaterial.unitsCost
+    );
+    stockMaterial.unitsNumber = newUnitsNumber;
+    stockMaterial.totalcost = newTotalCost;
+    await stockMaterial.save();
+
+    let indexOfMaterial = objOurRequest.listOfMaterials.findIndex(
+      (x) =>
+        new mongoose.Types.ObjectId(x._id) ==
+        new mongoose.Types.ObjectId(body.id)
+    );
+    objOurRequest.listOfMaterials.splice(indexOfMaterial, 1);
+    await objOurRequest.save();
+    res.status(201).json({
+      statusCode: res.statusCode,
+      message: "deleted successfully",
     });
   } catch (error) {
     res.status(500).json({ message: error.message });

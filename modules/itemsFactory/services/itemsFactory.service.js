@@ -3,6 +3,7 @@ const factoryModel = require("../../factory/model/factory.model");
 const ourRequestModel = require("../../ourRequest/model/ourRequest.model");
 const convertArray = require("../../../core/shared/errorForm");
 const { validationResult } = require("express-validator");
+const mongoose = require("mongoose");
 
 // Create a new factory
 exports.createItemsFactory = async (req, res) => {
@@ -45,7 +46,39 @@ exports.createItemsFactory = async (req, res) => {
 // Get all factories
 exports.getAllItemsFactories = async (req, res) => {
   try {
-    const factories = await itemsFactory.find().populate("factoryId");
+    let query = {};
+    if (req.query.factoryId) {
+      query["factoryId._id"] = new mongoose.Types.ObjectId(req.query.factoryId);
+    }
+    if (req.query.classificationId) {
+      query["typeOfFactoryId.classificationId"] = parseInt(
+        req.query.classificationId
+      );
+    }
+    const factories = await itemsFactory.aggregate([
+      {
+        $lookup: {
+          from: "factories",
+          localField: "factoryId",
+          foreignField: "_id",
+          as: "factoryId",
+        },
+      },
+      { $unwind: "$factoryId" },
+      {
+        $lookup: {
+          from: "typeoffactories",
+          localField: "factoryId.typeOfFactoryId",
+          foreignField: "_id",
+          as: "typeOfFactoryId",
+        },
+      },
+      { $unwind: "$typeOfFactoryId" },
+      {
+        $match: query,
+      },
+    ]);
+
     res.status(200).json({
       statusCode: res.statusCode,
       message: "successfully",
@@ -84,13 +117,11 @@ exports.getItemsFactoryByFactoryId = async (req, res) => {
       factoryId: req.params.factoryId,
     });
     if (!itemFactory) {
-      return res
-        .status(404)
-        .json({
-          statusCode: res.statusCode,
-          message: "Item not found",
-          data: [],
-        });
+      return res.status(404).json({
+        statusCode: res.statusCode,
+        message: "Item not found",
+        data: [],
+      });
     }
     res.status(200).json({
       statusCode: res.statusCode,
@@ -165,7 +196,7 @@ exports.deleteItemsFactory = async (req, res) => {
         model: "ItemsFactory",
         select: "name",
       });
-    
+
     if (listOfOurRequests.length > 0) {
       return res.status(400).json({
         statusCode: res.statusCode,

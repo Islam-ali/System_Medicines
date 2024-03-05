@@ -1,10 +1,14 @@
 const mongoose = require("mongoose");
+const OrderStatus = require("../../../core/enums/OrderStatus.enum");
+
 const logStockSchema = new mongoose.Schema({
-  stockId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "stock",
+  orderStatus: {
+    type: String,
+    enum: [OrderStatus.RECIVED, OrderStatus.RETURN],
     required: true,
   },
+  itemName: { type: String, required: true },
+  factoryName: { type: String, required: true },
   unitsNumber: { type: Number, required: true },
   unitsCost: { type: Number, required: true },
   totalcost: { type: Number, required: true },

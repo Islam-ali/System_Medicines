@@ -138,6 +138,8 @@ app.use("/salaries", require("./modules/Salaries/routes/salaries.route.js"));
 app.use("/expences", require("./modules/expences/routes/expences.route.js"));
 app.use("/dashboard", require("./modules/dashboard/routes/dashboard.route.js"));
 app.use("/doctor", require("./modules/doctor/routes/doctor.route.js"));
+app.use("/dr-service", require("./modules/dr-services/routes/dr-services.route.js"));
+
 
 
 

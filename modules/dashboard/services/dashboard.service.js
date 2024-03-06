@@ -160,7 +160,7 @@ exports.getStatsticsAccountGroupbyYear = async (req, res, next) => {
         },
       },
     ]);
-    // const totalRecived = sum(allProfit.map((profit) => profit.totalRecived));
+    const totalIncomes = sum(allIncomes.map((income) => income.totalRecived));
     const matchQueryExpences = {
       $expr: {
         $and: [{ $eq: [{ $year: "$cashDate" }, year] }],
@@ -178,6 +178,9 @@ exports.getStatsticsAccountGroupbyYear = async (req, res, next) => {
         },
       },
     ]);
+    const totalExpences = sum(
+      allExpences.map((expences) => expences.totalAmount)
+    );
 
     months.forEach((ele) => {
       if (!allIncomes.find((x) => x._id == ele)) {
@@ -202,6 +205,8 @@ exports.getStatsticsAccountGroupbyYear = async (req, res, next) => {
       data: {
         allIncomes: allIncomes.sort((a, b) => a._id - b._id),
         allExpences: allExpences.sort((a, b) => a._id - b._id),
+        totalIncomes: totalIncomes,
+        totalExpences: totalExpences,
       },
     });
   } catch (error) {

@@ -1,12 +1,11 @@
-const salariesModel = require("../model/dr-services.model");
+const serviceModel = require("../model/dr-services.model");
 const { validationResult } = require("express-validator");
 const convertArray = require("../../../core/shared/errorForm");
-const mongoose = require("mongoose");
 const { sum } = require("lodash");
 const expencesModel = require("../../expences/model/expences.model");
 
 // get All type of Factories
-exports.getAllSalaries = async (req, res, next) => {
+exports.getAllServices = async (req, res, next) => {
   try {
     const queryDate = req.query.date;
     const year = new Date(queryDate).getFullYear();
@@ -20,28 +19,28 @@ exports.getAllSalaries = async (req, res, next) => {
       },
     };
 
-    const allSalaries = await salariesModel.aggregate([
+    const allServices = await serviceModel.aggregate([
       {
         $lookup: {
-          from: "users",
-          localField: "employeeId",
+          from: "doctors",
+          localField: "doctorId",
           foreignField: "_id",
-          as: "employeeId",
+          as: "doctorId",
         },
       },
-      { $unwind: "$employeeId" },
+      { $unwind: "$doctorId" },
       {
         $match: matchQuery,
       },
     ]);
 
-    const totalSalaries = sum(allSalaries.map((income) => income.amount));
+    const totalServices = sum(allServices.map((service) => service.amount));
 
     res.status(200).json({
       statusCode: 200,
-      message: "Successfully fetched all Salaries",
-      data: allSalaries,
-      totalSalaries: totalSalaries,
+      message: "Successfully fetched all Service",
+      data: allServices,
+      totalServices: totalServices,
     });
   } catch (error) {
     res
@@ -50,22 +49,22 @@ exports.getAllSalaries = async (req, res, next) => {
   }
 };
 
-exports.getSalariesById = async (req, res) => {
+exports.getServiceById = async (req, res) => {
   try {
-    const objSalaries = await salariesModel
+    const objService = await serviceModel
       .findById(req.params.id)
-      .populate("employeeId");
-    if (!objSalaries) {
+      .populate("doctorId");
+    if (!objService) {
       return res.status(404).json({
         statusCode: res.statusCode,
-        message: "Salaries not Result",
-        data: objSalaries,
+        message: "service not Result",
+        data: objService,
       });
     }
     res.status(200).json({
       statusCode: res.statusCode,
       message: "successfully",
-      data: objSalaries,
+      data: objService,
     });
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -73,7 +72,7 @@ exports.getSalariesById = async (req, res) => {
 };
 
 // create Payment Sale
-exports.createSalaries = async (req, res, next) => {
+exports.createService = async (req, res, next) => {
   const body = req.body;
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
@@ -101,11 +100,12 @@ exports.createSalaries = async (req, res, next) => {
     //   });
     // }
 
-    await salariesModel.create(body).then(async (result) => {
+    await serviceModel.create(body).then(async (result) => {
       const objExpences = new expencesModel({
-        typeExpences: "salary",
+        typeExpences: "service",
         paymentFactoryId: null,
-        salaryId: result._id,
+        salaryId: null,
+        serviceId: result._id,
         amount: body.amount,
         cashDate: body.date,
       });
@@ -128,8 +128,8 @@ exports.createSalaries = async (req, res, next) => {
 };
 
 // update Sale
-exports.updateSalaries = async (req, res, next) => {
-  const SalariesId = req.params.id;
+exports.updateService = async (req, res, next) => {
+  const ServiceId = req.params.id;
   const body = req.body;
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
@@ -141,10 +141,10 @@ exports.updateSalaries = async (req, res, next) => {
     });
   }
   try {
-    const objsalariesModel = await salariesModel
-      .findById(SalariesId)
+    const objserviceModel = await serviceModel
+      .findById(ServiceId)
       .populate("employeeId");
-    if (!objsalariesModel) {
+    if (!objserviceModel) {
       return res.status(404).json({
         statusCode: res.statusCode,
         message: "Salary not found",
@@ -153,16 +153,17 @@ exports.updateSalaries = async (req, res, next) => {
     const updateDocument = {
       $set: body,
     };
-    await salariesModel.updateOne({ _id: SalariesId }, updateDocument);
+    await serviceModel.updateOne({ _id: ServiceId }, updateDocument);
     const objExpences = {
-      typeExpences: "salary",
+      typeExpences: "service",
       paymentFactoryId: null,
+      salaryId:null,
       amount: body.amount,
       cashDate: body.date,
     };
     await expencesModel.updateOne(
       {
-        salaryId: req.params.id,
+        serviceId: req.params.id,
       },
       {
         $set: objExpences,
@@ -180,22 +181,22 @@ exports.updateSalaries = async (req, res, next) => {
 };
 
 // Delete Sale
-exports.deleteSalaries = async (req, res) => {
-  const SalariesId = req.params.id;
+exports.deleteService = async (req, res) => {
+  const ServiceId = req.params.id;
   try {
-    const objsalariesModel = await salariesModel
-      .findById(SalariesId)
+    const objserviceModel = await serviceModel
+      .findById(ServiceId)
       .populate("employeeId");
-    if (!objsalariesModel) {
+    if (!objserviceModel) {
       return res.status(404).json({
         statusCode: res.statusCode,
         message: "salary not found",
       });
     }
 
-    await salariesModel.deleteOne({_id:req.params.id});
+    await serviceModel.deleteOne({_id:req.params.id});
     await expencesModel.deleteOne({
-      salaryId: req.params.id,
+      serviceId: req.params.id,
     });
     res.status(201).json({
       statusCode: res.statusCode,

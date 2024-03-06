@@ -34,25 +34,6 @@ exports.getAllExpences = async (req, res, next) => {
                 as: "paymentFactoryId",
               },
             },
-            // {
-            //   $lookup: {
-            //     from: "ourrequests",
-            //     localField: "paymentFactoryId.ourRequestId",
-            //     foreignField: "_id",
-            //     as: "ourRequestId",
-            //   },
-            // },
-            // {
-            //   $unwind: "$ourRequestId",
-            // },
-            // {
-            //   $lookup: {
-            //     from: "factories",
-            //     localField: "ourRequestId.factoryId",
-            //     foreignField: "_id",
-            //     as: "factories",
-            //   },
-            // },
           ],
           withoutpaymentFactory: [
             {
@@ -124,11 +105,56 @@ exports.getAllExpences = async (req, res, next) => {
       {
         $replaceRoot: { newRoot: "$salaries" },
       },
+      {
+        $facet: {
+          withService: [
+            {
+              $match: {
+                serviceId: { $exists: true },
+              },
+            },
+            {
+              $lookup: {
+                from: "services",
+                localField: "serviceId",
+                foreignField: "_id",
+                as: "serviceId",
+              },
+            },
+            {
+              $lookup: {
+                from: "users",
+                localField: "serviceId.doctorId",
+                foreignField: "_id",
+                as: "doctorId",
+              },
+            },
+          ],
+          withoutService: [
+            {
+              $match: {
+                serviceId: { $exists: false },
+              },
+            },
+          ],
+        },
+      },
+      {
+        $project: {
+          services: {
+            $concatArrays: ["$withService", "$withoutService"],
+          },
+        },
+      },
+      {
+        $unwind: "$services",
+      },
+      {
+        $replaceRoot: { newRoot: "$services" },
+      },
     ]);
 
-    const totalCashAmount = sum(
-      allExpences.map((income) => income.amount)
-    );
+    const totalCashAmount = sum(allExpences.map((income) => income.amount));
 
     const totalCashAmountpaymentFactory = allExpences.reduce((sum, item) => {
       if (item.typeExpences === "FactoryPayment") {
@@ -144,11 +170,19 @@ exports.getAllExpences = async (req, res, next) => {
       return sum;
     }, 0);
 
+    const totalCashAmountServices = allExpences.reduce((sum, item) => {
+      if (item.typeExpences === "salary") {
+        return sum + item.amount;
+      }
+      return sum;
+    }, 0);
+
     res.status(200).json({
       statusCode: res.statusCode,
       message: "successfully",
       data: allExpences,
       totalCashAmountpaymentFactory: totalCashAmountpaymentFactory | 0,
+      totalCashAmountServices: totalCashAmountServices | 0,
       totalCashAmountSalaries: totalCashAmountSalaries | 0,
       totalCashAmount: totalCashAmount | 0,
     });

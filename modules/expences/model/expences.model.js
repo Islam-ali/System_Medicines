@@ -9,6 +9,10 @@ const expencesSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: "salaries",
   },
+  serviceId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "service",
+  },
   amount: { type: Number, required: true },
   cashDate: { type: Date, required: true },
 });

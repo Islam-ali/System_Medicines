@@ -486,18 +486,263 @@ exports.getAllProfitAndIncomesAndExpences = async (req, res, next) => {
       return sum;
     }, 0);
 
+    const totalCashAmountServices = allExpences.reduce((sum, item) => {
+      if (item.typeExpences === "salary") {
+        return sum + item.amount;
+      }
+      return sum;
+    }, 0);
+
     res.status(200).json({
       statusCode: res.statusCode,
       message: "successfully",
       data: {
         totalCashAmountpaymentFactory: totalCashAmountpaymentFactory | 0,
+        totalCashAmountServices: totalCashAmountServices | 0,
         totalCashAmountSalaries: totalCashAmountSalaries | 0,
         totalCashAmount: totalCashAmount | 0,
         totalRecived: totalRecived | 0,
         profit: totalRecived - totalCashAmount,
       },
     });
+  } catch (error) {
+    res
+      .status(500)
+      .json({ statusCode: res.statusCode, message: error.message });
+  }
+};
 
+exports.getAllProfitAndIncomesAndExpencesInYear = async (req, res, next) => {
+  try {
+    // const queryDate = req.query.date;
+    const year = new Date().getFullYear();
+    // const month = new Date().getMonth() + 1; // Months are zero-based, so add 1
+    const matchQuery = {
+      $expr: {
+        $and: [{ $eq: [{ $year: "$date" }, year] }],
+      },
+    };
+    const allProfit = await paymentSaleModel.aggregate([
+      {
+        $match: matchQuery,
+      },
+      {
+        $lookup: {
+          from: "sales",
+          localField: "saleId",
+          foreignField: "_id",
+          as: "saleInfo",
+        },
+      },
+      { $unwind: "$saleInfo" },
+      {
+        $lookup: {
+          from: "clients",
+          localField: "saleInfo.clientId",
+          foreignField: "_id",
+          as: "clientInfo",
+        },
+      },
+      { $unwind: "$clientInfo" },
+      {
+        $lookup: {
+          from: "branchstocks",
+          localField: "saleInfo.branchStockId",
+          foreignField: "_id",
+          as: "branchStockInfo",
+        },
+      },
+      { $unwind: "$branchStockInfo" },
+      {
+        $lookup: {
+          from: "stocks",
+          localField: "branchStockInfo.stockId",
+          foreignField: "_id",
+          as: "stockInfo",
+        },
+      },
+      { $unwind: "$stockInfo" },
+      {
+        $lookup: {
+          from: "users",
+          localField: "recipientId",
+          foreignField: "_id",
+          as: "recipientInfo",
+        },
+      },
+      { $unwind: "$recipientInfo" },
+      // {
+      //   $addFields: {
+      //     totalCost: {
+      //       $first: ["$stockInfo.unitsCost"],
+      //     },
+      //   },
+      // },
+      {
+        $group: {
+          _id: "$saleId", // Group by saleId
+          payments: { $push: "$$ROOT" }, // Push all payment documents into an array
+          unitsCost: { $first: "$stockInfo.unitsCost" },
+          salesQuantity: { $first: "$saleInfo.salesQuantity" },
+          totalRecived: { $sum: "$amount" },
+          clientName: { $first: "$clientInfo.name" },
+          clientId: { $first: "$clientInfo._id" },
+          salesValue: { $first: "$saleInfo.salesValue" },
+          itemName: { $first: "$stockInfo.itemName" },
+          totalCost: {
+            $first: {
+              $multiply: ["$stockInfo.unitsCost", "$saleInfo.salesQuantity"],
+            },
+          }, // Calculate total cost
+        },
+      },
+      // {
+      //   $addFields: {
+      //     profit: { $subtract: ["$totalRecived", "$totalCost"] }, // Calculate profit
+      //     totalBalance: { $subtract: ["$salesValue", "$totalRecived"] }, // Calculate total balance
+      //   },
+      // },
+    ]);
+
+    // const totalBalance = sum(allProfit.map((profit) => profit.totalBalance));
+    const totalRecived = sum(allProfit.map((profit) => profit.totalRecived));
+    // const totalProfit = sum(allProfit.map((profit) => profit.profit));
+    const matchQueryExpences = {
+      $expr: {
+        $and: [
+          { $eq: [{ $year: "$cashDate" }, year] },
+          // { $eq: [{ $month: "$cashDate" }, month] },
+        ],
+      },
+    };
+    const allExpences = await expencesModel.aggregate([
+      {
+        $match: matchQueryExpences,
+      },
+      {
+        $facet: {
+          withpaymentFactory: [
+            {
+              $match: {
+                paymentFactoryId: { $exists: true },
+              },
+            },
+            {
+              $lookup: {
+                from: "paymentforfactories",
+                localField: "paymentFactoryId",
+                foreignField: "_id",
+                as: "paymentFactoryId",
+              },
+            },
+          ],
+          withoutpaymentFactory: [
+            {
+              $match: {
+                paymentFactoryId: { $exists: false },
+              },
+            },
+          ],
+        },
+      },
+      {
+        $project: {
+          paymentFactory: {
+            $concatArrays: ["$withpaymentFactory", "$withoutpaymentFactory"],
+          },
+        },
+      },
+      {
+        $unwind: "$paymentFactory",
+      },
+      {
+        $replaceRoot: { newRoot: "$paymentFactory" },
+      },
+
+      {
+        $facet: {
+          withSalary: [
+            {
+              $match: {
+                salaryId: { $exists: true },
+              },
+            },
+            {
+              $lookup: {
+                from: "salaries",
+                localField: "salaryId",
+                foreignField: "_id",
+                as: "salaryId",
+              },
+            },
+            {
+              $lookup: {
+                from: "users",
+                localField: "salaryId.employeeId",
+                foreignField: "_id",
+                as: "employeeId",
+              },
+            },
+          ],
+          withoutSalary: [
+            {
+              $match: {
+                salaryId: { $exists: false },
+              },
+            },
+          ],
+        },
+      },
+      {
+        $project: {
+          salaries: {
+            $concatArrays: ["$withSalary", "$withoutSalary"],
+          },
+        },
+      },
+      {
+        $unwind: "$salaries",
+      },
+      {
+        $replaceRoot: { newRoot: "$salaries" },
+      },
+    ]);
+
+    const totalCashAmount = sum(allExpences.map((income) => income.amount));
+
+    const totalCashAmountpaymentFactory = allExpences.reduce((sum, item) => {
+      if (item.typeExpences === "FactoryPayment") {
+        return sum + item.amount;
+      }
+      return sum;
+    }, 0);
+
+    const totalCashAmountSalaries = allExpences.reduce((sum, item) => {
+      if (item.typeExpences === "salary") {
+        return sum + item.amount;
+      }
+      return sum;
+    }, 0);
+
+    const totalCashAmountServices = allExpences.reduce((sum, item) => {
+      if (item.typeExpences === "salary") {
+        return sum + item.amount;
+      }
+      return sum;
+    }, 0);
+
+    res.status(200).json({
+      statusCode: res.statusCode,
+      message: "successfully",
+      data: {
+        totalCashAmountpaymentFactory: totalCashAmountpaymentFactory | 0,
+        totalCashAmountServices: totalCashAmountServices | 0,
+        totalCashAmountSalaries: totalCashAmountSalaries | 0,
+        totalCashAmount: totalCashAmount | 0,
+        totalRecived: totalRecived | 0,
+        profit: totalRecived - totalCashAmount,
+      },
+    });
   } catch (error) {
     res
       .status(500)

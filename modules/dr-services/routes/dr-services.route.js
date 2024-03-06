@@ -4,15 +4,15 @@ const Salaries = require('../services/dr-services.service');
 const validateSalaries = require('../validation/dr-services.validation')
 const {verifyToken,checkPermission} = require('../../../middelware/auth.middleware')
 
-router.get('/getAllSalaries' , verifyToken, checkPermission('user.read'),Salaries.getAllSalaries);
+router.get('/getAllServices' , verifyToken, checkPermission('clients.read'),Salaries.getAllServices);
 
-router.get('/getSalariesById/:Id' , verifyToken, checkPermission('user.read'),Salaries.getSalariesById);
+router.get('/getServiceById/:Id' , verifyToken, checkPermission('clients.read'),Salaries.getServiceById);
 
-router.post('/createSalaries' , verifyToken , checkPermission('user.create') ,validateSalaries, Salaries.createSalaries);
+router.post('/createService' , verifyToken , checkPermission('clients.create') ,validateSalaries, Salaries.createService);
 
-router.put('/updateSalaries/:id' , verifyToken , checkPermission('user.update'),validateSalaries , Salaries.updateSalaries);
+router.put('/updateService/:id' , verifyToken , checkPermission('clients.update'),validateSalaries , Salaries.updateService);
 
-router.delete('/deleteSalaries/:id' , verifyToken , checkPermission('user.dalete') , Salaries.deleteSalaries);
+router.delete('/deleteService/:id' , verifyToken , checkPermission('clients.delete') , Salaries.deleteService);
 
 
 module.exports = router;

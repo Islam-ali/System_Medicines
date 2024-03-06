@@ -20,6 +20,13 @@ router.get(
   profitService.getAllProfitAndIncomesAndExpences
 );
 
+// Get all Profit Expences
+router.get(
+  "/getAllProfitAndIncomesAndExpencesInYear",
+  verifyToken,
+  profitService.getAllProfitAndIncomesAndExpencesInYear
+);
+
 router.get(
   "/getAllProfitIncomes",
   verifyToken,

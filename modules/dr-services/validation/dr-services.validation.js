@@ -1,7 +1,7 @@
 const { body } = require('express-validator');
 
 const validatePaymentSale = [
-  body("employeeId").notEmpty().withMessage("employee is required"),
+  body("doctorId").notEmpty().withMessage("doctor is required"),
   body("date").notEmpty().withMessage("date is required"),
   body("amount")
     .isInt({ min: 1 })

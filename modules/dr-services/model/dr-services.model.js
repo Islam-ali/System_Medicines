@@ -1,18 +1,22 @@
 const mongoose = require('mongoose');
 
 
-const salariesSchema = new mongoose.Schema({
+const serviceSchema = new mongoose.Schema({
   doctorId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "doctors",
     required: true,
   },
-  date: { type: Date , required: true},
-  amount: { type: Number , required: true},
+  employeeId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "users",
+  },
+  date: { type: Date, required: true },
+  amount: { type: Number, required: true },
   note: { type: String },
 });
 
 
-const salaries = mongoose.model("salaries", salariesSchema);
+const service = mongoose.model("service", serviceSchema);
 
-module.exports = salaries;
+module.exports = service;

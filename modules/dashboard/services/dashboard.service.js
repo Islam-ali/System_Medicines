@@ -1,0 +1,280 @@
+const { sum } = require("lodash");
+const paymentSaleModel = require("../../paymentSale/model/paymentSale.model");
+const expencesModel = require("../../expences/model/expences.model");
+
+exports.getStatsticsAcountInYear = async (req, res, next) => {
+  try {
+    const year = new Date().getFullYear();
+    const matchQueryIncome = {
+      $expr: {
+        $and: [{ $eq: [{ $year: "$date" }, year] }],
+      },
+    };
+    const allProfit = await paymentSaleModel.aggregate([
+      {
+        $match: matchQueryIncome,
+      },
+      {
+        $group: {
+          _id: "$saleId",
+          payments: { $push: "$$ROOT" },
+          totalRecived: { $sum: "$amount" },
+        },
+      },
+    ]);
+
+    const totalRecived = sum(allProfit.map((profit) => profit.totalRecived));
+
+    const matchQueryExpences = {
+      $expr: {
+        $and: [{ $eq: [{ $year: "$cashDate" }, year] }],
+      },
+    };
+    const allExpences = await expencesModel.aggregate([
+      {
+        $match: matchQueryExpences,
+      },
+    ]);
+
+    const totalCashAmount = sum(allExpences.map((income) => income.amount));
+
+    const totalCashAmountpaymentFactory = allExpences.reduce((sum, item) => {
+      if (item.typeExpences === "FactoryPayment") {
+        return sum + item.amount;
+      }
+      return sum;
+    }, 0);
+
+    const totalCashAmountSalaries = allExpences.reduce((sum, item) => {
+      if (item.typeExpences === "salary") {
+        return sum + item.amount;
+      }
+      return sum;
+    }, 0);
+
+    res.status(200).json({
+      statusCode: res.statusCode,
+      message: "successfully",
+      data: {
+        totalCashAmountpaymentFactory: totalCashAmountpaymentFactory | 0,
+        totalCashAmountSalaries: totalCashAmountSalaries | 0,
+        totalCashAmount: totalCashAmount | 0,
+        totalRecived: totalRecived | 0,
+        profit: totalRecived - totalCashAmount,
+      },
+    });
+  } catch (error) {
+    res
+      .status(500)
+      .json({ statusCode: res.statusCode, message: error.message });
+  }
+};
+
+exports.getStatsticsAcountInMonth = async (req, res, next) => {
+  try {
+    const month = new Date().getMonth() + 1;
+    const matchQueryIncome = {
+      $expr: {
+        $eq: [{ $month: "$date" }, month],
+      },
+    };
+    const allProfit = await paymentSaleModel.aggregate([
+      {
+        $match: matchQueryIncome,
+      },
+      {
+        $group: {
+          _id: "$saleId",
+          payments: { $push: "$$ROOT" },
+          totalRecived: { $sum: "$amount" },
+        },
+      },
+    ]);
+
+    const totalRecived = sum(allProfit.map((profit) => profit.totalRecived));
+
+    const matchQueryExpences = {
+      $expr: {
+        $and: [{ $eq: [{ $month: "$cashDate" }, month] }],
+      },
+    };
+    const allExpences = await expencesModel.aggregate([
+      {
+        $match: matchQueryExpences,
+      },
+    ]);
+
+    const totalCashAmount = sum(allExpences.map((income) => income.amount));
+
+    const totalCashAmountpaymentFactory = allExpences.reduce((sum, item) => {
+      if (item.typeExpences === "FactoryPayment") {
+        return sum + item.amount;
+      }
+      return sum;
+    }, 0);
+
+    const totalCashAmountSalaries = allExpences.reduce((sum, item) => {
+      if (item.typeExpences === "salary") {
+        return sum + item.amount;
+      }
+      return sum;
+    }, 0);
+
+    res.status(200).json({
+      statusCode: res.statusCode,
+      message: "successfully",
+      data: {
+        totalCashAmountpaymentFactory: totalCashAmountpaymentFactory | 0,
+        totalCashAmountSalaries: totalCashAmountSalaries | 0,
+        totalCashAmount: totalCashAmount | 0,
+        totalRecived: totalRecived | 0,
+        profit: totalRecived - totalCashAmount,
+      },
+    });
+  } catch (error) {
+    res
+      .status(500)
+      .json({ statusCode: res.statusCode, message: error.message });
+  }
+};
+
+exports.getStatsticsAccountGroupbyYear = async (req, res, next) => {
+  try {
+    const months = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
+    const year = new Date().getFullYear();
+
+    const matchQueryIncome = {
+      $expr: {
+        $eq: [{ $year: "$date" }, year],
+      },
+    };
+    const allIncomes = await paymentSaleModel.aggregate([
+      {
+        $match: matchQueryIncome,
+      },
+      {
+        $group: {
+          _id: { $month: "$date" }, // Group by month
+          totalRecived: { $sum: "$amount" }, // Calculate total amount for each month
+          count: { $sum: 1 }, // Count the number of expenses for each month
+        },
+      },
+    ]);
+    // const totalRecived = sum(allProfit.map((profit) => profit.totalRecived));
+    const matchQueryExpences = {
+      $expr: {
+        $and: [{ $eq: [{ $year: "$cashDate" }, year] }],
+      },
+    };
+    const allExpences = await expencesModel.aggregate([
+      {
+        $match: matchQueryExpences,
+      },
+      {
+        $group: {
+          _id: { $month: "$cashDate" }, // Group by month
+          totalAmount: { $sum: "$amount" }, // Calculate total amount for each month
+          count: { $sum: 1 }, // Count the number of expenses for each month
+        },
+      },
+    ]);
+
+    months.forEach((ele) => {
+      if (!allIncomes.find((x) => x._id == ele)) {
+        allIncomes.push({
+          _id: ele,
+          totalRecived: 0,
+          count: 0,
+        });
+      }
+      if (!allExpences.find((x) => x._id == ele)) {
+        allExpences.push({
+          _id: ele,
+          totalAmount: 0,
+          count: 0,
+        });
+      }
+    });
+
+    res.status(200).json({
+      statusCode: res.statusCode,
+      message: "successfully",
+      data: {
+        allIncomes: allIncomes.sort((a, b) => a._id - b._id),
+        allExpences: allExpences.sort((a, b) => a._id - b._id),
+      },
+    });
+  } catch (error) {
+    res
+      .status(500)
+      .json({ statusCode: res.statusCode, message: error.message });
+  }
+};
+
+// exports.getStatsticsAcountInYear = async (req, res, next) => {
+//   try {
+//     const year = new Date().getFullYear();
+//     const matchQueryIncome = {
+//       $expr: {
+//         $and: [{ $eq: [{ $year: "$date" }, year] }],
+//       },
+//     };
+//     const allProfit = await paymentSaleModel.aggregate([
+//       {
+//         $match: matchQueryIncome,
+//       },
+//       {
+//         $group: {
+//           _id: "$saleId",
+//           payments: { $push: "$$ROOT" },
+//           totalRecived: { $sum: "$amount" },
+//         },
+//       },
+//     ]);
+
+//     const totalRecived = sum(allProfit.map((profit) => profit.totalRecived));
+
+//     const matchQueryExpences = {
+//       $expr: {
+//         $and: [{ $eq: [{ $year: "$cashDate" }, year] }],
+//       },
+//     };
+//     const allExpences = await expencesModel.aggregate([
+//       {
+//         $match: matchQueryExpences,
+//       },
+//     ]);
+
+//     const totalCashAmount = sum(allExpences.map((income) => income.amount));
+
+//     const totalCashAmountpaymentFactory = allExpences.reduce((sum, item) => {
+//       if (item.typeExpences === "FactoryPayment") {
+//         return sum + item.amount;
+//       }
+//       return sum;
+//     }, 0);
+
+//     const totalCashAmountSalaries = allExpences.reduce((sum, item) => {
+//       if (item.typeExpences === "salary") {
+//         return sum + item.amount;
+//       }
+//       return sum;
+//     }, 0);
+
+//     res.status(200).json({
+//       statusCode: res.statusCode,
+//       message: "successfully",
+//       data: {
+//         totalCashAmountpaymentFactory: totalCashAmountpaymentFactory | 0,
+//         totalCashAmountSalaries: totalCashAmountSalaries | 0,
+//         totalCashAmount: totalCashAmount | 0,
+//         totalRecived: totalRecived | 0,
+//         profit: totalRecived - totalCashAmount,
+//       },
+//     });
+//   } catch (error) {
+//     res
+//       .status(500)
+//       .json({ statusCode: res.statusCode, message: error.message });
+//   }
+// };

@@ -147,18 +147,18 @@ exports.createPaymentSale = async (req, res, next) => {
     objSale.received += body.amount;
     objSale.balance = objSale.salesValue - objSale.received;
 
-    if (objSale.received > objSale.salesValue){
-          return res.status(400).json({
-            statusCode: res.statusCode,
-            message: "Amount more than balance",
-          });
+    if (objSale.received > objSale.salesValue) {
+      return res.status(400).json({
+        statusCode: res.statusCode,
+        message: "Amount more than balance",
+      });
     }
-      // objSale.profit =
-      //   objSale.received -
-      //   objSale.salesQuantity * objSale.branchStockId.stockId.unitsCost;
-      objSale.realProfit =
-        objSale.received -
-        objSale.salesQuantity * objSale.branchStockId.stockId.unitsCost;
+    // objSale.profit =
+    //   objSale.received -
+    //   objSale.salesQuantity * objSale.branchStockId.stockId.unitsCost;
+    objSale.realProfit =
+      objSale.received -
+      objSale.salesQuantity * objSale.branchStockId.stockId.unitsCost;
 
     const newPaymentSale = new paymentSaleModel({
       saleId: body.saleId,
@@ -238,7 +238,8 @@ exports.updatePaymentSale = async (req, res, next) => {
     const CopyObjPaymentSale = JSON.parse(JSON.stringify(objpaymentSaleModel));
 
     //return sale
-    const objOldSale = await saleModel.findOne({ _id: objpaymentSaleModel.saleId })
+    const objOldSale = await saleModel
+      .findOne({ _id: objpaymentSaleModel.saleId })
       .populate({
         path: "branchStockId",
         model: "branchStock",
@@ -254,23 +255,39 @@ exports.updatePaymentSale = async (req, res, next) => {
       objOldSale.received -
       objOldSale.salesQuantity * objOldSale.branchStockId.stockId.unitsCost;
 
+    if (objOldSale.received + body.amount > objOldSale.salesValue) {
+      return res.status(400).json({
+        statusCode: res.statusCode,
+        message: "Amount is more than sales value",
+      });
+    }
     // return res.json({received:objOldSale.received , amount:objpaymentSaleModel.amount})
     // return payment sale
-    objpaymentSaleModel.recived -= objpaymentSaleModel.amount;
-    objpaymentSaleModel.balance =
-      objOldSale.salesValue - objpaymentSaleModel.recived;
+    // objpaymentSaleModel.recived -= objpaymentSaleModel.amount;
+    // objpaymentSaleModel.balance =
+    //   objOldSale.salesValue - objpaymentSaleModel.recived;
 
-    objpaymentSaleModel.amount = body.amount;
+    const oldListPayments = await paymentSaleModel.find({
+      saleId: objpaymentSaleModel.saleId,
+    });
+
+    oldListPayments.forEach(async (ele) => {
+      ele.recived = 0;
+      ele.balance = 0;
+      await ele.save();
+    });
 
     // update payment sale
-    objpaymentSaleModel.recived += objpaymentSaleModel.amount;
-    objpaymentSaleModel.balance =
-      objOldSale.salesValue - objpaymentSaleModel.recived;
+    // objpaymentSaleModel.recived += objpaymentSaleModel.amount;
+    // objpaymentSaleModel.balance =
+    //   objOldSale.salesValue - objpaymentSaleModel.recived;
 
+    objpaymentSaleModel.amount = body.amount;
     objpaymentSaleModel.saleId = body.saleId;
     objpaymentSaleModel.recipientId = body.recipientId;
     objpaymentSaleModel.date = body.date;
     objpaymentSaleModel.note = body.note;
+
     let objNewSale = {};
     if (objOldSale._id.toString() !== objpaymentSaleModel.saleId.toString()) {
       objNewSale = await saleModel.findOne({ _id: body.saleId }).populate({
@@ -293,6 +310,17 @@ exports.updatePaymentSale = async (req, res, next) => {
 
     await Promise.all([objpaymentSaleModel.save(), objNewSale.save()]).then(
       async (result) => {
+        const newListPayments = await paymentSaleModel.find({
+          saleId: objpaymentSaleModel.saleId,
+        });
+
+        newListPayments.forEach(async (ele, index) => {
+          index
+            ? (ele.recived = newListPayments[index - 1].recived + ele.amount)
+            : (ele.recived = ele.amount);
+          ele.balance = objOldSale.salesValue - ele.recived;
+          await ele.save();
+        });
         const objLogClient = {
           clientId: objOldSale.clientId,
           paymentSaleId: result[0]._id,
@@ -364,6 +392,31 @@ exports.deletePaymentSale = async (req, res) => {
       paymentSaleModel.deleteOne({ _id: paymentSaleId }),
       objOldSale.save(),
     ]).then(async (result) => {
+      // Update all oldListPayments documents
+      await paymentSaleModel.updateMany(
+        { saleId: objpaymentSaleModel.saleId },
+        { $set: { recived: 0, balance: 0 } }
+      );
+
+      // Retrieve the updated list of payments
+      const newListPayments = await paymentSaleModel.find({
+        saleId: objpaymentSaleModel.saleId,
+      });
+
+      // Calculate recived and balance for each payment
+      let recivedSum = 0;
+      newListPayments.forEach((ele, index) => {
+        if (index === 0) {
+          ele.recived = ele.amount;
+        } else {
+          ele.recived = recivedSum + ele.amount;
+        }
+        recivedSum = ele.recived;
+        ele.balance = objOldSale.salesValue - ele.recived;
+      });
+
+      // Save the updated list of payments
+      await Promise.all(newListPayments.map((ele) => ele.save()));
       const objLogClient = {
         clientId: objpaymentSaleModel.saleId.clientId,
         paymentSaleId: result[0]._id,

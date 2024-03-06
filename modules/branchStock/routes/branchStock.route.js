@@ -17,4 +17,11 @@ router.get(
   checkPermission("branchStock.read"),
   branchStockService.getAllBranchStock
 );
+
+router.put(
+  "/changeStatusBranchStock/:id",
+  verifyToken,
+  checkPermission("branchStock.read"),
+  branchStockService.changeStatusBranchStock
+);
 module.exports = router;

@@ -350,7 +350,7 @@ exports.getAllPaymentForFactories = async (req, res) => {
     res.status(200).json({
       statusCode: res.statusCode,
       message: "successfully",
-      data: PaymentForFactories,
+      data: PaymentForFactories.reverse(),
     });
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -396,12 +396,11 @@ exports.getAllPaymentForOurRequest = async (req, res) => {
       listOfUniqueOurRequests[index].listOfPayments = filter;
     });
 
-    // return res.json({ listOfUniqueOurRequests });
 
     res.status(200).json({
       statusCode: res.statusCode,
       message: "successfully",
-      data: listOfUniqueOurRequests,
+      data: listOfUniqueOurRequests.reverse(),
     });
   } catch (error) {
     res.status(500).json({ message: error.message });

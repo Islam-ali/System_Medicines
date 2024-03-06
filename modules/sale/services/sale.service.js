@@ -67,7 +67,7 @@ exports.getAllSales = async (req, res, next) => {
     res.status(200).json({
       statusCode: res.statusCode,
       message: "successfully",
-      data: allSale,
+      data: allSale.reverse(),
     });
   } catch (error) {
     res
@@ -103,7 +103,7 @@ exports.getAllSalesByClientId = async (req, res, next) => {
     res.status(200).json({
       statusCode: res.statusCode,
       message: "successfully",
-      data: allSales,
+      data: allSales.reverse(),
     });
   } catch (error) {
     res
@@ -206,15 +206,15 @@ exports.createSale = async (req, res, next) => {
     objBranchStock.unitsNumber -= body.salesQuantity;
 
     // update stock
-    const objStock = await stockModel.findOne({ _id: objBranchStock.stockId });
+    // const objStock = await stockModel.findOne({ _id: objBranchStock.stockId });
 
-    objStock.unitsNumber -= body.salesQuantity;
-    objStock.totalcost = objStock.unitsNumber * objStock.unitsCost;
+    // objStock.unitsNumber -= body.salesQuantity;
+    // objStock.totalcost = objStock.unitsNumber * objStock.unitsCost;
 
     await Promise.all([
       newSale.save(),
       objBranchStock.save(),
-      objStock.save(),
+      // objStock.save(),
     ]).then(async (result) => {
       const objLogClient = {
         clientId: result[0].clientId,
@@ -292,8 +292,8 @@ exports.updateSale = async (req, res, next) => {
       objBranchStock.unitsNumber + objSale.salesQuantity;
 
     // update stock
-    objStock.unitsNumber = objStock.unitsNumber + objSale.salesQuantity;
-    objStock.totalcost = objStock.unitsNumber * objStock.unitsCost;
+    // objStock.unitsNumber = objStock.unitsNumber + objSale.salesQuantity;
+    // objStock.totalcost = objStock.unitsNumber * objStock.unitsCost;
 
     if (objBranchStock.unitsNumber < body.salesQuantity) {
       return res.status(400).json({
@@ -331,14 +331,14 @@ exports.updateSale = async (req, res, next) => {
       objBranchStock.unitsNumber - body.salesQuantity;
 
     // update stock
-    objStock.unitsNumber = objStock.unitsNumber - body.salesQuantity;
-    objStock.totalcost = objStock.unitsNumber * objStock.unitsCost;
+    // objStock.unitsNumber = objStock.unitsNumber - body.salesQuantity;
+    // objStock.totalcost = objStock.unitsNumber * objStock.unitsCost;
 
     // Save the updated sale
     await Promise.all([
       objSale.save(),
       objBranchStock.save(),
-      objStock.save(),
+      // objStock.save(),
     ]).then(async (result) => {
       const objLogClient = {
         clientId: result[0].clientId,
@@ -420,7 +420,7 @@ exports.deleteSale = async (req, res) => {
     // objStock.unitsNumber = objStock.unitsNumber + objSale.salesQuantity;
     // objStock.totalcost = objStock.unitsNumber * objStock.unitsCost;
     await Promise.all([
-      saleModel.deleteOne(req.params.id),
+      saleModel.deleteOne({ _id: req.params.id }),
       objBranchStock.save(),
       // objStock.save(),
       paymentSaleModel.deleteMany({ saleId: objSale._id }),

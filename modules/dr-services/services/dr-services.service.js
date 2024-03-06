@@ -1,4 +1,4 @@
-const salariesModel = require("../model/salaries.model");
+const salariesModel = require("../model/dr-services.model");
 const { validationResult } = require("express-validator");
 const convertArray = require("../../../core/shared/errorForm");
 const mongoose = require("mongoose");

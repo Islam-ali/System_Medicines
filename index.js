@@ -125,18 +125,9 @@ app.use('/itemsFactory', require('./modules/itemsFactory/routes/itemsFactory.rou
 app.use('/ourRequest', require('./modules/ourRequest/routes/ourRequest.route.js') );
 app.use('/paymentForFactory', require('./modules/PaymentForFactories/routes/paymentForFactories.route.js') );
 app.use('/factoryAccount', require('./modules/FactoryAccounts/routes/factoryAccount.route.js') );
-app.use(
-  "/wayOfPayment",
-  require("./modules/wayOfPayment/routes/wayOfPayment.route.js.js")
-);
-app.use(
-  "/stock",
-  require("./modules/stock/routes/stock.route.js")
-);
-app.use(
-  "/branchStock",
-  require("./modules/branchStock/routes/branchStock.route.js")
-);
+app.use("/wayOfPayment",require("./modules/wayOfPayment/routes/wayOfPayment.route.js.js"));
+app.use("/stock",require("./modules/stock/routes/stock.route.js"));
+app.use("/branchStock",require("./modules/branchStock/routes/branchStock.route.js"));
 app.use('/client', require('./modules/client/routes/client.route.js') );
 app.use('/government', require('./modules/government/routes/government.route.js') );
 app.use('/city', require('./modules/city/routes/city.route.js') );
@@ -145,8 +136,8 @@ app.use('/paymentSale', require('./modules/paymentSale/routes/paymentSale.route.
 app.use("/profit", require("./modules/profit/routes/profit.route.js"));
 app.use("/salaries", require("./modules/Salaries/routes/salaries.route.js"));
 app.use("/expences", require("./modules/expences/routes/expences.route.js"));
-
-
+app.use("/dashboard", require("./modules/dashboard/routes/dashboard.route.js"));
+app.use("/doctor", require("./modules/doctor/routes/doctor.route.js"));
 
 
 

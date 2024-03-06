@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
-const Salaries = require('../services/salaries.service');
-const validateSalaries = require('../validation/salaries.validation')
+const Salaries = require('../services/dr-services.service');
+const validateSalaries = require('../validation/dr-services.validation')
 const {verifyToken,checkPermission} = require('../../../middelware/auth.middleware')
 
 router.get('/getAllSalaries' , verifyToken, checkPermission('user.read'),Salaries.getAllSalaries);

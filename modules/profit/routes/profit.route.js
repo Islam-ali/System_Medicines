@@ -34,4 +34,11 @@ router.get(
   profitService.getAllProfitIncomes
 );
 
+router.get(
+  "/getStatisticsAccountGroupbyYear",
+  verifyToken,
+  checkPermission("user.read"),
+  profitService.getStatisticsAccountGroupbyYear
+);
+
 module.exports = router;

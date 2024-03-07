@@ -11,7 +11,7 @@ var app = express();
 // import serverless from "serverless-http";
 var debug = require('debug')('system-medicines:server');
 var http = require('http');
-
+const { createProxyMiddleware } = require("http-proxy-middleware");
 /**
  * Get port from environment and store in Express.
  */
@@ -93,14 +93,33 @@ function onListening() {
   debug('Listening on ' + bind);
 }
 
-app.use((req, res, next) => {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE');
-  next();
+// function setCorsHeaders(req, res, next) {
+//   res.setHeader("Access-Control-Allow-Origin", "*");
+//   res.setHeader(
+//     "Access-Control-Allow-Methods",
+//     "GET, POST, PUT, PATCH, DELETE"
+//   );
+//   res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
+//   next();
+// }
+
+// app.use(setCorsHeaders);
+const apiProxy = createProxyMiddleware({
+  target: "*",
+  changeOrigin: true,
+  pathRewrite: {
+    "^/": "/",
+  },
+  onProxyReq: function (proxyReq, req, res) {
+    proxyReq.setHeader("Authorization", `Bearer ${req.headers.authorization}`);
+  },
+  onProxyRes: function (proxyRes, req, res) {
+    proxyRes.headers["Access-Control-Allow-Origin"] = "*";
+  },
 });
 
-app.use(cors());
-
+app.use("/", apiProxy);
+// app.use(cors());
 // view engine setup
 // app.set('views', path.join(__dirname, 'views'));
 // app.set('view engine', 'jade');

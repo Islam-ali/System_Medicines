@@ -299,11 +299,15 @@ exports.getLogClient = async (req, res) => {
       .populate({
         path: "clientId",
         model: "client",
+      })
+      .populate({
+        path: "creationBy",
+        model: "users",
       });
     res.status(200).json({
       statusCode: res.statusCode,
       message: "successfully",
-      data: allLogClient,
+      data: allLogClient.reverse(),
     });
   } catch (error) {
     res

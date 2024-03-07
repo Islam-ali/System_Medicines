@@ -105,7 +105,7 @@ function onListening() {
 
 // app.use(setCorsHeaders);
 const apiProxy = createProxyMiddleware({
-  target: "http://localhost:50256",
+  target: "http://localhost:3000",
   changeOrigin: true,
   pathRewrite: {
     "^/": "/",

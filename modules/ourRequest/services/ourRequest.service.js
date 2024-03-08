@@ -356,11 +356,6 @@ exports.updateOurRequest = async (req, res) => {
             await stock.save();
           }
         }
-      } else {
-        return res.status(400).json({
-          statusCode: res.statusCode,
-          message: "must be Add row Materials",
-        });
       }
     }
 

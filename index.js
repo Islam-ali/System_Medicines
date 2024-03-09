@@ -133,6 +133,7 @@ app.use('/government', require('./modules/government/routes/government.route.js'
 app.use('/city', require('./modules/city/routes/city.route.js') );
 app.use('/sales', require('./modules/sale/routes/sale.route.js') );
 app.use('/paymentSale', require('./modules/paymentSale/routes/paymentSale.route.js') );
+app.use('/paymentClient', require('./modules/paymentClient/routes/paymentClient.route.js') );
 app.use("/profit", require("./modules/profit/routes/profit.route.js"));
 app.use("/salaries", require("./modules/Salaries/routes/salaries.route.js"));
 app.use("/expences", require("./modules/expences/routes/expences.route.js"));

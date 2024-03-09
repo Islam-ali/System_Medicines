@@ -28,7 +28,7 @@ exports.createRole = async (req, res) => {
 // Get all roles
 exports.getAllRoles = async (req, res) => {
   try {
-    const roles = await RoleModel.find();
+    const roles = await RoleModel.find({ _id: { $ne: "659db7e1e7aef720ff187185" } });
     res.status(200).json({
       statusCode: res.statusCode,
       message: "successfully",

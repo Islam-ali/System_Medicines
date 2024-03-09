@@ -2,6 +2,8 @@ const { clientModel, listtypeOfClient } = require("../model/client.model");
 const { validationResult } = require("express-validator");
 const convertArray = require("../../../core/shared/errorForm");
 const logClientModel = require("../../log-client/model/log-client.model");
+const sale = require("../../sale/model/sale.model");
+const { sum } = require("lodash");
 
 exports.listTypeOfClient = async (req, res, next) => {
   try {
@@ -56,10 +58,14 @@ exports.getClientById = async (req, res, next) => {
         model: "government",
       },
     });
+    const listOfSales = await sale.find({clientId: req.params.id})
+
+    const totalSalesValue = sum(listOfSales.map(sale => sale.salesValue))
+
     res.status(200).json({
       statusCode: res.statusCode,
       message: "successfully",
-      data: client,
+      data: {...client._doc , totalSalesValue:totalSalesValue},
     });
   } catch (error) {
     res
@@ -219,16 +225,16 @@ exports.getLogClient = async (req, res) => {
         select: "-password -roleId",
       })
       .populate({
-        path: "paymentSaleId",
-        model: "paymentSale",
+        path: "paymentClientId",
+        model: "paymentClient",
       })
       .populate({
         path: "saleId",
         model: "sale",
       })
       .populate({
-        path: "beforUpdatePaymentSale",
-        // model: "paymentSale",
+        path: "beforUpdatePaymentClient",
+        // model: "paymentClient",
         populate: [
           {
             path: "saleId",
@@ -250,8 +256,8 @@ exports.getLogClient = async (req, res) => {
         ],
       })
       .populate({
-        path: "afterUpdatePaymentSale",
-        // model: "paymentSale",
+        path: "afterUpdatePaymentClient",
+        // model: "paymentClient",
         populate: [
           {
             path: "saleId",

@@ -63,4 +63,11 @@ router.get(
   stockService.getLogStock
 );
 
+router.get(
+  "/getTotalAmountInStock",
+  verifyToken,
+  checkPermission("stock.read"),
+  stockService.getTotalAmountInStock
+);
+
 module.exports = router;

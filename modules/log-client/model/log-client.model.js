@@ -10,9 +10,9 @@ const logClientSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: "sale",
   },
-  paymentSaleId: {
+  paymentClientId: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: "paymentSale",
+    ref: "paymentClient",
   },
   creationBy: {
     type: mongoose.Schema.Types.ObjectId,
@@ -21,8 +21,8 @@ const logClientSchema = new mongoose.Schema({
   },
   beforUpdateSale: { type: Object},
   afterUpdateSale: { type: Object},
-  beforUpdatePaymentSale: { type: Object },
-  afterUpdatePaymentSale: { type: Object },
+  beforUpdatePaymentClient: { type: Object },
+  afterUpdatePaymentClient: { type: Object },
   type: { type: String, required: true },
   methodName: { type: String, required: true },
   creationDate: { type: Date, required: true },

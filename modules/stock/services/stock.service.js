@@ -4,6 +4,7 @@ const logStock = require("../model/logStock.model");
 const mongoose = require("mongoose");
 const ourRequest = require("../../ourRequest/model/ourRequest.model");
 const OrderStatus = require("../../../core/enums/OrderStatus.enum");
+const { sum } = require("lodash");
 
 // Get Factory Stock
 exports.getStock = async (req, res) => {
@@ -125,8 +126,8 @@ exports.getStockByClassificationId = async (req, res) => {
 
 exports.getLogStock = async (req, res) => {
   try {
-    const listOfLogStock = await logStock.find()
-    
+    const listOfLogStock = await logStock.find();
+
     // .aggregate([
     //   {
     //     $lookup: {
@@ -235,7 +236,7 @@ exports.returnOurRequest = async (req, res) => {
   try {
     const objStock = await stockModel.aggregate([
       {
-        $match: { '_id': new mongoose.Types.ObjectId(req.params.id) },
+        $match: { _id: new mongoose.Types.ObjectId(req.params.id) },
       },
       {
         $lookup: {
@@ -261,9 +262,6 @@ exports.returnOurRequest = async (req, res) => {
       return res.status(404).json({ message: "Stock not found" });
     }
 
-    console.log(
-      objStock[0].ourRequestId.unitsNumber , objStock[0].unitsNumber
-    );
     if (objStock[0].ourRequestId.unitsNumber !== objStock[0].unitsNumber) {
       return res.status(400).json({ message: "can't Return" });
     }
@@ -274,13 +272,12 @@ exports.returnOurRequest = async (req, res) => {
     await ourRequest.updateOne(filter, updateDocument).then(async (result) => {
       await stockModel.deleteOne({ _id: req.params.id });
       const objLogStock = new logStock({
-        stockId: result._id,
         itemName: objStock[0].ourRequestId.itemName,
         factoryName: objStock[0].factoryId.name,
         unitsNumber: objStock[0].ourRequestId.unitsNumber,
         unitsCost: objStock[0].ourRequestId.unitsCost,
         totalcost: objStock[0].ourRequestId.totalcost,
-        orderStatus: OrderStatus.RECIVED,
+        orderStatus: OrderStatus.RETURN,
         insertDate: new Date(),
       });
       await objLogStock.save();
@@ -366,6 +363,38 @@ exports.transactionFromBranchStockToStock = async (req, res) => {
     return res.status(201).json({
       statusCode: res.statusCode,
       message: "Transaction successful",
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+exports.getTotalAmountInStock = async (req, res) => {
+  try {
+    const listOfStock = await stockModel.find();
+
+    const totalAmountRowMaterials = listOfStock.reduce((sum, item) => {
+      if (item.classificationId === 1) {
+        return sum + item.totalcost;
+      }
+      return sum;
+    }, 0);
+    const totalAmountManufacturing = listOfStock.reduce((sum, item) => {
+      if (item.classificationId === 2) {
+        return sum + item.totalcost;
+      }
+      return sum;
+    }, 0);
+    const totalAmount = sum (listOfStock.map((stock) => stock.totalcost));
+
+    res.status(200).json({
+      statusCode: res.statusCode,
+      message: "successfully",
+      data: {
+        totalAmountRowMaterials: totalAmountRowMaterials,
+        totalAmountManufacturing: totalAmountManufacturing,
+        totalAmount:totalAmount
+      },
     });
   } catch (error) {
     res.status(500).json({ message: error.message });

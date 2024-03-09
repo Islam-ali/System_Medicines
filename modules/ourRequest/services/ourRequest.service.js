@@ -339,7 +339,7 @@ exports.updateOurRequest = async (req, res) => {
           const stock = await stockModel.findOne({
             _id: material.itemFactoryId,
           });
-          !material._id  ? material._id = new mongoose.Types.ObjectId() : null;
+          !material._id ? (material._id = new mongoose.Types.ObjectId()) : null;
           const newUnitsNumber = stock.unitsNumber - material.unitsNumber;
           if (newUnitsNumber < 0) {
             return res.status(400).json({
@@ -403,9 +403,19 @@ exports.changeOrderStatus = async (req, res) => {
         data: [],
       });
     }
-
     const classificationId =
-      objOurRequest.itemFactoryId.factoryId.typeOfFactoryId.classificationId;
+    objOurRequest.itemFactoryId.factoryId.typeOfFactoryId.classificationId;
+    if (
+      classificationId == 2 &&
+      (!objOurRequest.patchNumber ||
+      !objOurRequest.manfDate ||
+      !objOurRequest.expDate)
+    ) {
+      return res.status(400).json({
+        statusCode: res.statusCode,
+        message: "must be Add PatchNumber , ManfDate and ExpDate",
+      });
+    }
 
     if (req.body.orderStatus == orderStatusEnum.RECIVED) {
       const stockRequest = new stockModel({
@@ -418,9 +428,9 @@ exports.changeOrderStatus = async (req, res) => {
         unitsNumber: objOurRequest.unitsNumber,
         unitsCost: objOurRequest.unitsCost,
         totalcost: objOurRequest.totalcost,
-        patchNumber: "",
-        manfDate: "",
-        expDate: "",
+        patchNumber: objOurRequest.patchNumber,
+        manfDate: objOurRequest.manfDate,
+        expDate: objOurRequest.expDate,
       });
 
       const filter = { _id: req.params.id };
@@ -431,7 +441,6 @@ exports.changeOrderStatus = async (req, res) => {
       await OurRequest.updateOne(filter, updateDocument);
       await stockRequest.save().then(async (result) => {
         const objLogStock = new logStock({
-          stockId: result._id,
           itemName: objOurRequest.itemName,
           factoryName: objOurRequest.itemFactoryId.factoryId.name,
           unitsNumber: objOurRequest.unitsNumber,

@@ -17,7 +17,7 @@ exports.createItemsFactory = async (req, res) => {
     });
   }
   try {
-    const existingFactory = await itemsFactory.findOne({ name: req.body.name });
+    const existingFactory = await itemsFactory.findOne({ name: req.body.name , factoryId:req.body.factoryId});
     if (existingFactory) {
       return res.status(400).json({
         statusCode: res.statusCode,
@@ -159,6 +159,13 @@ exports.updateItemsFactory = async (req, res) => {
         statusCode: res.statusCode,
         message: "Items not found",
         data: [],
+      });
+    }
+    const existingFactory = await itemsFactory.findOne({_id: { $ne: req.params.id }, name: req.body.name , factoryId:req.body.factoryId});
+    if (existingFactory) {
+      return res.status(400).json({
+        statusCode: res.statusCode,
+        message: "Item already exists",
       });
     }
 

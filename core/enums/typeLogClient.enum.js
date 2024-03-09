@@ -1,5 +1,5 @@
 const typeLogClient = {
-  PAYMENTSALE: 'paymentsale',
+  PAYMENT: 'payment',
   SALE: 'sale',
 };
 

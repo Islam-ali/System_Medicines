@@ -261,7 +261,9 @@ exports.returnOurRequest = async (req, res) => {
     if (!objStock[0]) {
       return res.status(404).json({ message: "Stock not found" });
     }
-
+    console.log(
+      objStock[0].ourRequestId.unitsNumber , objStock[0].unitsNumber
+    );
     if (objStock[0].ourRequestId.unitsNumber !== objStock[0].unitsNumber) {
       return res.status(400).json({ message: "can't Return" });
     }

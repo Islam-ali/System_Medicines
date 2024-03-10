@@ -17,11 +17,21 @@ exports.getAllSales = async (req, res, next) => {
     const clientId = req.query.clientId;
     const userId = req.userId;
     const isAllow = req.roleName == UserRole.ADMIN;
+    const fromDate = req.query.fromDate; // Assuming fromDate is provided in the request query
+    const toDate = req.query.toDate; // Assuming toDate is provided in the request query
+
     if (!isAllow) {
       query["userId"] = new mongoose.Types.ObjectId(userId);
     }
     if (clientId) {
       query["clientId"] = new mongoose.Types.ObjectId(clientId);
+    }
+
+    if (fromDate && toDate) {
+      query.date = {
+        $gte: new Date(fromDate),
+        $lte: new Date(toDate),
+      };
     }
     const allSale = await saleModel.aggregate([
       {

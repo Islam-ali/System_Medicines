@@ -1,6 +1,7 @@
 const { sum } = require("lodash");
-const paymentSaleModel = require("../../paymentSale/model/paymentSale.model");
 const expencesModel = require("../../expences/model/expences.model");
+const paymentClient = require("../../paymentClient/model/paymentClient.model");
+const paymentClientModel = require("../../paymentClient/model/paymentClient.model");
 
 exports.getStatsticsAcountInYear = async (req, res, next) => {
   try {
@@ -10,20 +11,13 @@ exports.getStatsticsAcountInYear = async (req, res, next) => {
         $and: [{ $eq: [{ $year: "$date" }, year] }],
       },
     };
-    const allProfit = await paymentSaleModel.aggregate([
+    const allIncomes = await paymentClient.aggregate([
       {
         $match: matchQueryIncome,
-      },
-      {
-        $group: {
-          _id: "$saleId",
-          payments: { $push: "$$ROOT" },
-          totalRecived: { $sum: "$amount" },
-        },
-      },
+      }
     ]);
 
-    const totalRecived = sum(allProfit.map((profit) => profit.totalRecived));
+    const totalRecived = sum(allIncomes.map((income) => income.amount));
 
     const matchQueryExpences = {
       $expr: {
@@ -78,20 +72,13 @@ exports.getStatsticsAcountInMonth = async (req, res, next) => {
         $eq: [{ $month: "$date" }, month],
       },
     };
-    const allProfit = await paymentSaleModel.aggregate([
+    const allIncomes = await paymentClientModel.aggregate([
       {
         $match: matchQueryIncome,
-      },
-      {
-        $group: {
-          _id: "$saleId",
-          payments: { $push: "$$ROOT" },
-          totalRecived: { $sum: "$amount" },
-        },
-      },
+      }
     ]);
 
-    const totalRecived = sum(allProfit.map((profit) => profit.totalRecived));
+    const totalRecived = sum(allIncomes.map((income) => income.amount));
 
     const matchQueryExpences = {
       $expr: {
@@ -148,7 +135,7 @@ exports.getStatsticsAccountGroupbyYear = async (req, res, next) => {
         $eq: [{ $year: "$date" }, year],
       },
     };
-    const allIncomes = await paymentSaleModel.aggregate([
+    const allIncomes = await paymentClientModel.aggregate([
       {
         $match: matchQueryIncome,
       },

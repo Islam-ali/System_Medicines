@@ -124,6 +124,8 @@ exports.createClient = async (req, res, next) => {
         (type) => type.id == req.body.typeOfClient
       ),
       cityId: req.body.cityId,
+      owner: req.body.owner,
+phone: req.body.phone,
     });
     await newClient.save();
     res.status(201).json({
@@ -172,6 +174,8 @@ exports.updateClient = async (req, res, next) => {
         (type) => type.id == req.body.typeOfClient
       )),
       (objClient.cityId = req.body.cityId),
+      objClient.owner = req.body.owner,
+      objClient.phone = req.body.phone,
       await objClient.save();
 
     res.status(201).json({

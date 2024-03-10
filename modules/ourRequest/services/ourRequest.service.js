@@ -53,6 +53,7 @@ exports.createOurRequest = async (req, res) => {
     const classificationId = objFactory.typeOfFactoryId.classificationId;
     let stock = {};
     if (classificationId == 2) {
+      body["code"] = body.patchNumber ? body.patchNumber : 0;
       if (body.listOfMaterials.length > 0) {
         body.listOfMaterials.forEach(async (material, index) => {
           material._id = new mongoose.Types.ObjectId();
@@ -89,6 +90,14 @@ exports.createOurRequest = async (req, res) => {
       //     message: "must be Add row Materials",
       //   });
       // }
+    }else{
+      const latestRequest = await OurRequest.findOne({}).sort({code: -1});
+
+      if (latestRequest) {
+          body["code"] = latestRequest.code + 1 ;
+      } else {
+          body["code"] = 1;
+      }
     }
 
     const mapBody = {
@@ -117,7 +126,6 @@ exports.getAllOurRequests = async (req, res) => {
     if (factoryId) {
       query["factoryId._id"] = new mongoose.Types.ObjectId(req.query.factoryId);
     }
-    console.log(query);
     const ourRequests = await OurRequest.aggregate([
       {
         $lookup: {
@@ -318,6 +326,7 @@ exports.updateOurRequest = async (req, res) => {
     const classificationId = objFactory.typeOfFactoryId.classificationId;
     // let stock = {};
     if (classificationId == 2) {
+      req.body["code"] = req.body.patchNumber ? req.body.patchNumber : 0;
       if (req.body.listOfMaterials.length > 0) {
         // old stock
         for (const material of objOurRequest.listOfMaterials) {

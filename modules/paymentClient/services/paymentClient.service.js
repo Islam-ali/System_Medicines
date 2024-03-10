@@ -151,8 +151,6 @@ exports.updatePaymentClient = async (req, res, next) => {
   try {
     const objpaymentClientModel = await paymentClientModel
       .findById(paymentClientId)
-      .populate("clientId")
-      .populate("recipientId");
     if (!objpaymentClientModel) {
       return res.status(404).json({
         statusCode: res.statusCode,
@@ -163,6 +161,11 @@ exports.updatePaymentClient = async (req, res, next) => {
       JSON.stringify(objpaymentClientModel)
     );
 
+    objpaymentClientModel.clientId = body.clientId
+    objpaymentClientModel.recipientId = body.recipientId
+    objpaymentClientModel.date = body.date
+    objpaymentClientModel.amount = body.amount
+    objpaymentClientModel.note = body.note
     await Promise.all([objpaymentClientModel.save()]).then(async (result) => {
       const oldObjClient = await clientModel.findOne({
         _id: CopyObjPaymentClient.clientId,

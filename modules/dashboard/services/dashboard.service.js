@@ -10,6 +10,7 @@ exports.getStatsticsAcountInYear = async (req, res, next) => {
       $expr: {
         $and: [{ $eq: [{ $year: "$date" }, year] }],
       },
+      
     };
     const allIncomes = await paymentClient.aggregate([
       {

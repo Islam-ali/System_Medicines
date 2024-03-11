@@ -1,5 +1,4 @@
 const paymentClientModel = require("../model/paymentClient.model");
-const saleModel = require("../../sale/model/sale.model");
 const logClientModel = require("../../log-client/model/log-client.model");
 const { validationResult } = require("express-validator");
 const convertArray = require("../../../core/shared/errorForm");
@@ -60,9 +59,12 @@ exports.getAllPaymentClient = async (req, res, next) => {
 
 exports.getPaymentClientById = async (req, res) => {
   try {
-    const objPaymentClient = await paymentClientModel.find({
-      _id: req.params.paymentClientId,
-    }).populate("clientId").populate("recipientId");
+    const objPaymentClient = await paymentClientModel
+      .find({
+        _id: req.params.paymentClientId,
+      })
+      .populate("clientId")
+      .populate("recipientId");
     if (!objPaymentClient) {
       return res.status(404).json({
         statusCode: res.statusCode,
@@ -82,6 +84,8 @@ exports.getPaymentClientById = async (req, res) => {
 
 // create Payment Sale
 exports.createPaymentClient = async (req, res, next) => {
+  let session = await mongoose.startSession();
+  session.startTransaction();
   const body = req.body;
   const userId = !body.userId ? req.userId : body.userId;
   const errors = validationResult(req);
@@ -102,31 +106,31 @@ exports.createPaymentClient = async (req, res, next) => {
       note: body.note,
     });
 
-    
-    await Promise.all([newPaymentClient.save(), objClient.save()]).then(
-      async (result) => {
-        const objClient = await clientModel.findOne({ _id: body.clientId });
-        objClient.wasPaid += body.amount;
-        const objLogClient = {
-          clientId: result[0].clientId,
-          paymentClientId: result[0]._id,
-          creationBy: req.userId,
-          beforUpdatePaymentClient: null,
-          afterUpdatePaymentClient: result[0]._doc,
-          type: typeLogClientEnum.PAYMENT,
-          methodName: methodTypeEnum.CREATE,
-          creationDate: new Date(),
-        };
-        await logClientModel.create(objLogClient);
-      }
-    );
-
+    await Promise.all([newPaymentClient.save()]).then(async (result) => {
+      const objClient = await clientModel.findOne({ _id: body.clientId });
+      objClient.wasPaid += body.amount;
+      await objClient.save();
+      const objLogClient = {
+        clientId: result[0].clientId,
+        paymentClientId: result[0]._id,
+        creationBy: req.userId,
+        beforUpdatePaymentClient: null,
+        afterUpdatePaymentClient: result[0]._doc,
+        type: typeLogClientEnum.PAYMENT,
+        methodName: methodTypeEnum.CREATE,
+        creationDate: new Date(),
+      };
+      await logClientModel.create(objLogClient);
+    });
+    await session.commitTransaction();
+    session.endSession();
     res.status(201).json({
       statusCode: res.statusCode,
       message: "Created payment successfully",
     });
   } catch (error) {
-    res;
+    await session.abortTransaction();
+    session.endSession();
     res.status(500).json({
       statusCode: res.statusCode,
       message: "Failed to create payment",
@@ -137,6 +141,8 @@ exports.createPaymentClient = async (req, res, next) => {
 
 // update Sale
 exports.updatePaymentClient = async (req, res, next) => {
+  let session = await mongoose.startSession();
+  session.startTransaction();
   const paymentClientId = req.params.id;
   const body = req.body;
   const errors = validationResult(req);
@@ -149,8 +155,9 @@ exports.updatePaymentClient = async (req, res, next) => {
     });
   }
   try {
-    const objpaymentClientModel = await paymentClientModel
-      .findById(paymentClientId)
+    const objpaymentClientModel = await paymentClientModel.findById(
+      paymentClientId
+    );
     if (!objpaymentClientModel) {
       return res.status(404).json({
         statusCode: res.statusCode,
@@ -161,11 +168,11 @@ exports.updatePaymentClient = async (req, res, next) => {
       JSON.stringify(objpaymentClientModel)
     );
 
-    objpaymentClientModel.clientId = body.clientId
-    objpaymentClientModel.recipientId = body.recipientId
-    objpaymentClientModel.date = body.date
-    objpaymentClientModel.amount = body.amount
-    objpaymentClientModel.note = body.note
+    objpaymentClientModel.clientId = body.clientId;
+    objpaymentClientModel.recipientId = body.recipientId;
+    objpaymentClientModel.date = body.date;
+    objpaymentClientModel.amount = body.amount;
+    objpaymentClientModel.note = body.note;
     await Promise.all([objpaymentClientModel.save()]).then(async (result) => {
       const oldObjClient = await clientModel.findOne({
         _id: CopyObjPaymentClient.clientId,
@@ -189,11 +196,15 @@ exports.updatePaymentClient = async (req, res, next) => {
       };
       await logClientModel.create(objLogClient);
     });
+    await session.commitTransaction();
+    session.endSession();
     res.status(201).json({
       statusCode: res.statusCode,
       message: "Update Sale successfully",
     });
   } catch (error) {
+    await session.abortTransaction();
+    session.endSession();
     res
       .status(500)
       .json({ statusCode: res.statusCode, message: error.message });
@@ -204,8 +215,9 @@ exports.updatePaymentClient = async (req, res, next) => {
 exports.deletePaymentClient = async (req, res) => {
   const paymentClientId = req.params.id;
   try {
-    const objpaymentClientModel = await paymentClientModel
-      .findById(paymentClientId)
+    const objpaymentClientModel = await paymentClientModel.findById(
+      paymentClientId
+    );
     if (!objpaymentClientModel) {
       return res.status(404).json({
         statusCode: res.statusCode,
@@ -238,8 +250,9 @@ exports.deletePaymentClient = async (req, res) => {
       message: "deleted payment successfully",
     });
   } catch (error) {
-    res
-      .status(500)
-      .json({ statusCode: res.statusCode, message: error.message });
+    res.status(500).json({
+      statusCode: res.statusCode,
+      message: error.message,
+    });
   }
 };

@@ -8,8 +8,15 @@ const { sum } = require("lodash");
 
 // Get Factory Stock
 exports.getStock = async (req, res) => {
+  const query = {};
+  if(req.query.status){
+    query["status"] = req.query.status;
+  }
   try {
     const listOfStock = await stockModel.aggregate([
+      {
+        $match:query
+      },
       {
         $lookup: {
           from: "ourrequests",
@@ -397,6 +404,30 @@ exports.getTotalAmountInStock = async (req, res) => {
         totalAmountManufacturing: totalAmountManufacturing,
         totalAmount:totalAmount
       },
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+exports.changeStatusStock = async (req, res) => {
+  try {
+    const objStock = await stockModel.findOne({
+      _id: req.params.id,
+    });
+    
+    if (!objStock) {
+      return res.status(404).json({
+        message: "Branch stock not found",
+      });
+    }
+
+    objStock.status = req.body.status;
+    objStock.save();
+    res.status(200).json({
+      statusCode: res.statusCode,
+      message: "successfully",
+      data: objStock,
     });
   } catch (error) {
     res.status(500).json({ message: error.message });

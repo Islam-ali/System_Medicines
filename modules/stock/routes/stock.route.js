@@ -70,4 +70,11 @@ router.get(
   stockService.getTotalAmountInStock
 );
 
+
+router.put(
+  "/changeStatusStock/:id",
+  verifyToken,
+  checkPermission("stock.update"),
+  stockService.changeStatusStock
+);
 module.exports = router;

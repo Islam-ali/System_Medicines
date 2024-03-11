@@ -1,5 +1,6 @@
 const branchStockModel = require("../model/branchStock.model");
 const userModel = require("../../users/model/user.model");
+const StatusSubStock = require("../../../core/enums/StatusSubStock.enum");
 // Get Factory Stock
 exports.getbranchStock = async (req, res) => {
   const userId = req.query.userId;
@@ -45,6 +46,7 @@ exports.getAllBranchStock = async (req, res) => {
       ListOfUsers.map(async (user) => {
         const countOfItems = await branchStockModel.countDocuments({
           userId: user._id,
+          status: { $ne: StatusSubStock.OUTOFSTOCK },
         });
         const objUsersAndCountOfItems = {
           user: user,

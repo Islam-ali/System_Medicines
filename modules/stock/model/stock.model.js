@@ -1,4 +1,6 @@
 const mongoose = require("mongoose");
+const StatusSubStock = require("../../../core/enums/StatusSubStock.enum");
+
 const stockSchema = new mongoose.Schema({
   ourRequestId: {
     type: mongoose.Schema.Types.ObjectId,
@@ -19,6 +21,11 @@ const stockSchema = new mongoose.Schema({
   patchNumber: { type: String },
   manfDate: { type: Date },
   expDate: { type: Date },
+  status: {
+    type: String,
+    enum: [StatusSubStock.INSTOCK, StatusSubStock.OUTOFSTOCK],
+    default: StatusSubStock.INSTOCK,
+  },
 });
 
 const stock = mongoose.model("Stock", stockSchema);

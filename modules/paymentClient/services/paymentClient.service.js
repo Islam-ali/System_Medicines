@@ -102,11 +102,11 @@ exports.createPaymentClient = async (req, res, next) => {
       note: body.note,
     });
 
-    const objClient = await clientModel.findOne({ _id: body.clientId });
-    objClient.wasPaid += body.amount;
-
+    
     await Promise.all([newPaymentClient.save(), objClient.save()]).then(
       async (result) => {
+        const objClient = await clientModel.findOne({ _id: body.clientId });
+        objClient.wasPaid += body.amount;
         const objLogClient = {
           clientId: result[0].clientId,
           paymentClientId: result[0]._id,
@@ -171,11 +171,11 @@ exports.updatePaymentClient = async (req, res, next) => {
         _id: CopyObjPaymentClient.clientId,
       });
       oldObjClient.wasPaid -= CopyObjPaymentClient.amount;
-      oldObjClient.save();
+      await oldObjClient.save();
 
       const objClient = await clientModel.findOne({ _id: body.clientId });
       objClient.wasPaid += body.amount;
-      objClient.save();
+      await objClient.save();
 
       const objLogClient = {
         clientId: result[0].clientId,

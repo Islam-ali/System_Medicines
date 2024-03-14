@@ -77,4 +77,13 @@ router.put(
   checkPermission("stock.update"),
   stockService.changeStatusStock
 );
+
+router.get(
+  "/getLogTransfer",
+  verifyToken,
+  checkPermission("stock.read"),
+  stockService.getLogTransfer
+);
+
+
 module.exports = router;

@@ -1,17 +1,18 @@
 const PaymentForFactory = require("../model/paymentForFactories.model");
-const ourRequest = require("../../ourRequest/model/ourRequest.model");
-const FactoryAccountLogModel = require("../../FactoryAccounts/model/factoryAccount.model");
 const convertArray = require("../../../core/shared/errorForm");
-const calculatePaymentFactory = require("../../../core/shared/calculatePaymentFactory");
 const { validationResult } = require("express-validator");
 const mongoose = require("mongoose");
 const expencesModel = require("../../expences/model/expences.model");
 const { sum } = require("lodash");
+const Factory = require("../../factory/model/factory.model");
 
 exports.totalCashAmountAndBalanceByMonthPaymentFactory = async (req, res) => {
+  const classificationId = req.query.classificationId;
+  const factoryId = req.query.factoryId;
   const queryDate = req.query.date;
   const year = new Date(queryDate).getFullYear();
-  const month = new Date(queryDate).getMonth() + 1; // Months are zero-based, so add 1
+  const month = new Date(queryDate).getMonth() + 1;
+  let query = {}; // Months are zero-based, so add 1
   const matchQuery = {
     $expr: {
       $and: [
@@ -20,14 +21,12 @@ exports.totalCashAmountAndBalanceByMonthPaymentFactory = async (req, res) => {
       ],
     },
   };
-  let matchClassification = {};
-  const classificationId = req.query.classificationId;
-  req.query.classificationId
-    ? (matchClassification = {
-        "typeOfFactoryId.classificationId": parseInt(classificationId),
-      })
-    : {};
-  console.log(matchClassification);
+  if (factoryId) {
+    query["factoryId._id"] = new mongoose.Types.ObjectId(factoryId);
+  }
+  if (classificationId) {
+    query["typeOfFactoryId.classificationId"] = parseInt(classificationId);
+  }
   try {
     const totals = await PaymentForFactory.aggregate([
       {
@@ -35,17 +34,8 @@ exports.totalCashAmountAndBalanceByMonthPaymentFactory = async (req, res) => {
       },
       {
         $lookup: {
-          from: "ourrequests",
-          localField: "ourRequestId",
-          foreignField: "_id",
-          as: "ourRequestId",
-        },
-      },
-      { $unwind: "$ourRequestId" },
-      {
-        $lookup: {
           from: "factories",
-          localField: "ourRequestId.factoryId",
+          localField: "factoryId",
           foreignField: "_id",
           as: "factoryId",
         },
@@ -61,7 +51,7 @@ exports.totalCashAmountAndBalanceByMonthPaymentFactory = async (req, res) => {
       },
       { $unwind: "$typeOfFactoryId" },
       {
-        $match: matchClassification,
+        $match: query,
       },
       // {
       //   $match: {
@@ -71,31 +61,31 @@ exports.totalCashAmountAndBalanceByMonthPaymentFactory = async (req, res) => {
       //     },
       //   },
       // },
-      {
-        $group: {
-          // _id: `${currentYear}-${currentMonth}-01`,
-          _id: "$ourRequestId", // Group by ourRequestId
-          payments: { $push: "$$ROOT" }, // Push all payment documents into an array
-          totalRecived: { $sum: "$ourRequestId.wasPaid" },
-          totalcost: { $first: "$ourRequestId.totalcost" },
-          itemName: { $first: "$stockInfo.itemName" },
-          totalCashAmount: { $sum: "$cashAmount" },
-          totalBalance: { $sum: "$balance" },
-        },
-      },
-      {
-        $addFields: {
-          // profit: { $subtract: ["$totalRecived", "$totalCost"] },
-          totalBalance: {
-            $subtract: ["$totalcost", "$totalCashAmount"],
-          },
-        },
-      },
+      // {
+      //   $group: {
+      //     // _id: `${currentYear}-${currentMonth}-01`,
+      //     _id: "$ourRequestId", // Group by ourRequestId
+      //     payments: { $push: "$$ROOT" }, // Push all payment documents into an array
+      //     totalRecived: { $sum: "$ourRequestId.wasPaid" },
+      //     totalcost: { $first: "$ourRequestId.totalcost" },
+      //     itemName: { $first: "$stockInfo.itemName" },
+      //     totalCashAmount: { $sum: "$cashAmount" },
+      //     totalBalance: { $sum: "$balance" },
+      //   },
+      // },
+      // {
+      //   $addFields: {
+      //     // profit: { $subtract: ["$totalRecived", "$totalCost"] },
+      //     totalBalance: {
+      //       $subtract: ["$totalcost", "$totalCashAmount"],
+      //     },
+      //   },
+      // },
     ]);
     const objMap = {
       date: `${queryDate}`,
-      totalCashAmount: sum(totals.map((ele) => ele.totalCashAmount)),
-      totalBalance: sum(totals.map((ele) => ele.totalBalance)),
+      totalCashAmount: sum(totals.map((ele) => ele.cashAmount)),
+      // totalBalance: sum(totals.map((ele) => ele.totalBalance)),
     };
     res.status(200).json({
       statusCode: res.statusCode,
@@ -110,31 +100,29 @@ exports.totalCashAmountAndBalanceByMonthPaymentFactory = async (req, res) => {
 exports.totalCashAmountAndBalanceByYearPaymentFactory = async (req, res) => {
   const queryDate = req.query.date;
   const year = new Date(queryDate).getFullYear();
+  const classificationId = req.query.classificationId;
+  const factoryId = req.query.factoryId;
+  let query = {}; // Months are zero-based, so add 1
+  if (factoryId) {
+    query["factoryId._id"] =  new mongoose.Types.ObjectId(factoryId);
+  }
+  if (classificationId) {
+    query["typeOfFactoryId.classificationId"] = parseInt(classificationId);
+  }
   const matchQuery = {
     $expr: {
       $and: [{ $eq: [{ $year: "$cashDate" }, year] }],
     },
   };
   try {
-    const classificationId = req.query.classificationId;
-
     const totals = await PaymentForFactory.aggregate([
       {
         $match: matchQuery,
       },
       {
         $lookup: {
-          from: "ourrequests",
-          localField: "ourRequestId",
-          foreignField: "_id",
-          as: "ourRequestId",
-        },
-      },
-      { $unwind: "$ourRequestId" },
-      {
-        $lookup: {
           from: "factories",
-          localField: "ourRequestId.factoryId",
+          localField: "factoryId",
           foreignField: "_id",
           as: "factoryId",
         },
@@ -150,9 +138,7 @@ exports.totalCashAmountAndBalanceByYearPaymentFactory = async (req, res) => {
       },
       { $unwind: "$typeOfFactoryId" },
       {
-        $match: {
-          "typeOfFactoryId.classificationId": parseInt(classificationId),
-        },
+        $match: query,
       },
       // {
       //   $match: {
@@ -162,31 +148,31 @@ exports.totalCashAmountAndBalanceByYearPaymentFactory = async (req, res) => {
       //     },
       //   },
       // },
-      {
-        $group: {
-          // _id: `${currentYear}-${currentMonth}-01`,
-          _id: "$ourRequestId", // Group by ourRequestId
-          payments: { $push: "$$ROOT" }, // Push all payment documents into an array
-          totalRecived: { $sum: "$ourRequestId.wasPaid" },
-          totalcost: { $first: "$ourRequestId.totalcost" },
-          itemName: { $first: "$stockInfo.itemName" },
-          totalCashAmount: { $sum: "$cashAmount" },
-          totalBalance: { $sum: "$balance" },
-        },
-      },
-      {
-        $addFields: {
-          // profit: { $subtract: ["$totalRecived", "$totalCost"] },
-          totalBalance: {
-            $subtract: ["$totalcost", "$totalCashAmount"],
-          },
-        },
-      },
+      // {
+      //   $group: {
+      //     // _id: `${currentYear}-${currentMonth}-01`,
+      //     _id: "$ourRequestId", // Group by ourRequestId
+      //     payments: { $push: "$$ROOT" }, // Push all payment documents into an array
+      //     totalRecived: { $sum: "$ourRequestId.wasPaid" },
+      //     totalcost: { $first: "$ourRequestId.totalcost" },
+      //     itemName: { $first: "$stockInfo.itemName" },
+      //     totalCashAmount: { $sum: "$cashAmount" },
+      //     totalBalance: { $sum: "$balance" },
+      //   },
+      // },
+      // {
+      //   $addFields: {
+      //     // profit: { $subtract: ["$totalRecived", "$totalCost"] },
+      //     totalBalance: {
+      //       $subtract: ["$totalcost", "$totalCashAmount"],
+      //     },
+      //   },
+      // },
     ]);
     const objMap = {
       date: `${queryDate}`,
-      totalCashAmount: sum(totals.map((ele) => ele.totalCashAmount)),
-      totalBalance: sum(totals.map((ele) => ele.totalBalance)),
+      totalCashAmount: sum(totals.map((ele) => ele.cashAmount)),
+      // totalBalance: sum(totals.map((ele) => ele.totalBalance)),
     };
     res.status(200).json({
       statusCode: res.statusCode,
@@ -213,72 +199,35 @@ exports.createPaymentForFactory = async (req, res) => {
     });
   }
   try {
-    const { ourRequestId, cashAmount } = req.body;
-    const objOurRequest = await ourRequest.findOne({
-      _id: ourRequestId,
+    const { factoryId, cashAmount, cashDate } = req.body;
+    const objFactory = await Factory.findOne({
+      _id: factoryId,
     });
-    if (!objOurRequest) {
+    if (!objFactory) {
       return res.status(400).json({
         statusCode: res.statusCode,
         message: "not exist Request",
       });
     }
 
-    // chach cashAmount and balance
-    let oldBalance = 0;
-    oldBalance = new calculatePaymentFactory().calculateBalance(
-      objOurRequest.totalcost,
-      objOurRequest.wasPaid
-    );
-    if (cashAmount > oldBalance) {
-      return res.status(400).json({
-        statusCode: res.statusCode,
-        message: "cach Amount More than Balance",
-      });
-    }
+    objFactory.wasPaid += cashAmount;
 
-    // calculate (wasPaid)
-    let wasPaid = 0;
-    wasPaid = new calculatePaymentFactory().IncreaseWasPaid(
-      objOurRequest.wasPaid,
-      cashAmount
-    );
-
-    // update Our Request
-    const filter = { _id: ourRequestId };
-    const updateDocument = {
-      $set: { wasPaid: wasPaid },
-    };
-    await ourRequest.updateOne(filter, updateDocument);
-
-    // calculate (balance)
-    let balance = 0;
-    let newPaymentForFactoryId = 0;
-    balance = new calculatePaymentFactory().calculateBalance(
-      objOurRequest.totalcost,
-      wasPaid
-    );
-
-    // create PaymentForFactory
-    body["balance"] = balance;
-    body["itemName"] = objOurRequest.itemName;
-    const newPaymentForFactory = await PaymentForFactory.create(body);
-    if (newPaymentForFactory) {
-      newPaymentForFactoryId = newPaymentForFactory._id;
+    // let newPaymentForFactoryId;
+    await PaymentForFactory.create(body).then(async (result) => {
+      // newPaymentForFactoryId = result._id;
       const objExpences = new expencesModel({
         typeExpences: "FactoryPayment",
-        paymentFactoryId: newPaymentForFactory._id,
-        salaryId: null,
-        amount: body.cashAmount,
-        cashDate: body.cashDate,
+        paymentFactoryId: result._id,
+        amount: cashAmount,
+        cashDate: cashDate,
       });
 
+      await objFactory.save();
       await objExpences.save();
-    }
+    });
     // create Factory Account Log
-    // body["balance"] = balance;
-    body["paymentForFactoryId"] = newPaymentForFactoryId;
-    await FactoryAccountLogModel.create(body);
+    // body["paymentForFactoryId"] = newPaymentForFactoryId;
+    // await FactoryAccountLogModel.create(body);
 
     await session.commitTransaction();
     session.endSession();
@@ -298,9 +247,11 @@ exports.createPaymentForFactory = async (req, res) => {
 exports.getAllPaymentForFactories = async (req, res) => {
   try {
     const classificationId = req.query.classificationId;
+    const factoryId = req.query.factoryId;
     const queryDate = req.query.date;
     const year = new Date(queryDate).getFullYear();
-    const month = new Date(queryDate).getMonth() + 1; // Months are zero-based, so add 1
+    const month = new Date(queryDate).getMonth() + 1;
+    let query = {}; // Months are zero-based, so add 1
     const matchQuery = {
       $expr: {
         $and: [
@@ -309,23 +260,20 @@ exports.getAllPaymentForFactories = async (req, res) => {
         ],
       },
     };
+    if (factoryId) {
+      query["factoryId._id"] = new mongoose.Types.ObjectId(factoryId);
+    }
+    if (classificationId) {
+      query["typeOfFactoryId.classificationId"] = parseInt(classificationId);
+    }
     const PaymentForFactories = await PaymentForFactory.aggregate([
       {
         $match: matchQuery,
       },
       {
         $lookup: {
-          from: "ourrequests",
-          localField: "ourRequestId",
-          foreignField: "_id",
-          as: "ourRequestId",
-        },
-      },
-      { $unwind: "$ourRequestId" },
-      {
-        $lookup: {
           from: "factories",
-          localField: "ourRequestId.factoryId",
+          localField: "factoryId",
           foreignField: "_id",
           as: "factoryId",
         },
@@ -341,9 +289,7 @@ exports.getAllPaymentForFactories = async (req, res) => {
       },
       { $unwind: "$typeOfFactoryId" },
       {
-        $match: {
-          "typeOfFactoryId.classificationId": parseInt(classificationId),
-        },
+        $match: query,
       },
     ]);
 
@@ -396,7 +342,6 @@ exports.getAllPaymentForOurRequest = async (req, res) => {
       listOfUniqueOurRequests[index].listOfPayments = filter;
     });
 
-
     res.status(200).json({
       statusCode: res.statusCode,
       message: "successfully",
@@ -414,17 +359,6 @@ exports.getPaymentByFactoryId = async (req, res) => {
     const objectIdFactoryId = new mongoose.Types.ObjectId(factoryId);
 
     let listOfPaymentByFactoryId = await PaymentForFactory.aggregate([
-      {
-        $lookup: {
-          from: "ourrequests",
-          localField: "ourRequestId",
-          foreignField: "_id",
-          as: "ourRequestId",
-        },
-      },
-      {
-        $unwind: "$ourRequestId",
-      },
       {
         $lookup: {
           from: "itemsfactories",
@@ -460,7 +394,7 @@ exports.getPaymentForFactoryById = async (req, res) => {
   try {
     const objPaymentForFactory = await PaymentForFactory.findById(
       req.params.id
-    ).populate("ourRequestId");
+    ).populate("factoryId");
     if (!objPaymentForFactory) {
       return res.status(404).json({ message: "Item not found" });
     }
@@ -498,12 +432,6 @@ exports.updatePaymentForFactory = async (req, res) => {
   let session = await mongoose.startSession();
   session.startTransaction();
   const errors = validationResult(req);
-  if (!req.params.id) {
-    return res.status(400).json({
-      statusCode: res.statusCode,
-      message: "ID Is Requierd",
-    });
-  }
   if (!errors.isEmpty()) {
     const convArray = new convertArray(errors.array());
     return res.status(400).json({
@@ -513,117 +441,47 @@ exports.updatePaymentForFactory = async (req, res) => {
     });
   }
   try {
-    const filterPaymentForFactoryId = { _id: req.params.id };
-    const { ourRequestId, cashAmount } = req.body;
-
-    const objPaymentForFactory = await PaymentForFactory.findOne(
-      filterPaymentForFactoryId
-    ).populate("ourRequestId");
-    if (!objPaymentForFactory) {
-      return res.status(404).json({
-        statusCode: res.statusCode,
-        message: "Not Found Item",
-      });
-    }
-    const oldObjOurRequest = await ourRequest.findOne({
-      _id: ourRequestId,
+    const objPaymentFactory = await PaymentForFactory.findOne({
+      _id: req.params.id,
     });
-    if (!oldObjOurRequest) {
+    const { factoryId, cashAmount, cashDate, note } = req.body;
+    const objFactory = await Factory.findOne({
+      _id: objPaymentFactory.factoryId,
+    });
+    if (!objFactory) {
       return res.status(400).json({
         statusCode: res.statusCode,
         message: "not exist Request",
       });
     }
-    const oldBalance = new calculatePaymentFactory().calculateBalance(
-      oldObjOurRequest.totalcost,
-      oldObjOurRequest.wasPaid - objPaymentForFactory.cashAmount
-    );
-    if (cashAmount > oldBalance) {
-      return res.status(400).json({
-        statusCode: res.statusCode,
-        message: "cach Amount More than Balance",
+
+    objFactory.wasPaid -= objPaymentFactory.cashAmount;
+    console.log(objFactory.wasPaid);
+
+    objPaymentFactory.cashAmount = cashAmount;
+    objPaymentFactory.factoryId = factoryId;
+    objPaymentFactory.cashDate = cashDate;
+    objPaymentFactory.note = note;
+
+    // let newPaymentForFactoryId;
+    await objPaymentFactory.save().then(async (result) => {
+      await objFactory.save();
+      const objNewFactory = await Factory.findOne({
+        _id: factoryId,
       });
-    }
 
-    // update Payment For Factory
-    await PaymentForFactory.updateOne(filterPaymentForFactoryId, {
-      $set: req.body,
-    });
+      objNewFactory.wasPaid += cashAmount;
+      await objNewFactory.save();
 
-    // Deleted Account Log
-    await FactoryAccountLogModel.deleteOne({
-      paymentForFactoryId: req.params.id,
-    });
-
-    const filter = { _id: ourRequestId };
-    const updateDocument = { $set: { wasPaid: 0 } };
-    let newObjourRequest = {};
-    let increaseWasPaid = 0;
-
-    // update Our Request all Waspaid = 0
-    await ourRequest.updateMany(filter, updateDocument);
-    newObjourRequest = await ourRequest.findOne({
-      _id: ourRequestId,
-    });
-
-    const listOfPaymentForFactories = await PaymentForFactory.find({
-      ourRequestId: objPaymentForFactory.ourRequestId._id,
-    });
-    for (const item of listOfPaymentForFactories) {
-      increaseWasPaid = new calculatePaymentFactory().IncreaseWasPaid(
-        newObjourRequest.wasPaid,
-        item.cashAmount
-      );
-      await ourRequest.updateOne(filter, {
-        $set: { wasPaid: increaseWasPaid },
-      });
-      newObjourRequest = await ourRequest.findOne(filter);
-      // calculate(balance)
-      let newBalance = 0;
-      newBalance = new calculatePaymentFactory().calculateBalance(
-        newObjourRequest.totalcost,
-        newObjourRequest.wasPaid
-      );
-
-      await PaymentForFactory.updateOne(
-        { _id: item._id },
-        {
-          $set: { balance: newBalance },
-        }
-      );
-    }
-
-    const objExpences = {
-      typeExpences: "FactoryPayment",
-      salaryId: null,
-      amount: req.body.cashAmount,
-      cashDate: req.body.cashDate,
-    };
-    await expencesModel.updateOne(
-      {
+      // newPaymentForFactoryId = result._id;
+      const objExpences = await expencesModel.findOne({
         paymentFactoryId: req.params.id,
-      },
-      {
-        $set: objExpences,
-      }
-    );
+      });
+      objExpences.amount = cashAmount;
+      objExpences.cashDate = cashDate;
 
-    newObjourRequest = await ourRequest.findOne(filter);
-
-    // calculate(balance)
-    let balance = 0;
-    balance = new calculatePaymentFactory().calculateBalance(
-      newObjourRequest.totalcost,
-      newObjourRequest.wasPaid
-    );
-
-    // create Factory Account Log
-    const logData = {
-      ...req.body,
-      balance: balance,
-      paymentForFactoryId: req.params.id,
-    };
-    await FactoryAccountLogModel.create(logData);
+      await objExpences.save();
+    });
 
     await session.commitTransaction();
     session.endSession();
@@ -645,64 +503,38 @@ exports.deletePaymentForFactory = async (req, res) => {
   session.startTransaction();
   try {
     const filterPaymentForFactoryId = { _id: req.params.id };
-    const objPaymentForFactory = await PaymentForFactory.findOne(
+    const objPaymentFactory = await PaymentForFactory.findOne(
       filterPaymentForFactoryId
-    ).populate("ourRequestId");
-    if (!objPaymentForFactory) {
+    ).populate("factoryId");
+    if (!objPaymentFactory) {
       return res.status(404).json({
         statusCode: res.statusCode,
-        message: "Not Found Item",
+        message: "Not Found payment",
       });
     }
 
-    // claculate was paid
-    let wasPaid = 0;
-    wasPaid = new calculatePaymentFactory().DecreaseWasPaid(
-      objPaymentForFactory.ourRequestId.wasPaid,
-      objPaymentForFactory.cashAmount
-    );
-
-    // update Our Request
-    const filterOurRequest = { _id: objPaymentForFactory.ourRequestId._id };
-    const updateDocument = {
-      $set: { wasPaid: wasPaid },
-    };
-    await ourRequest.updateOne(filterOurRequest, updateDocument);
-
-    // Remove Account Log
-    await FactoryAccountLogModel.deleteOne({
-      paymentForFactoryId: filterPaymentForFactoryId,
+    const objFactory = await Factory.findOne({
+      _id: objPaymentFactory.factoryId,
     });
+    if (!objFactory) {
+      return res.status(400).json({
+        statusCode: res.statusCode,
+        message: "not exist Factory",
+      });
+    }
 
-    // increse all balance (add cach Amount)
-    await PaymentForFactory.updateMany(
-      { ourRequestId: objPaymentForFactory.ourRequestId._id },
-      {
-        $inc: { balance: objPaymentForFactory.cashAmount },
+    objFactory.wasPaid -= objPaymentFactory.cashAmount;
+
+    await PaymentForFactory.deleteOne(filterPaymentForFactoryId).then(
+      async (result) => {
+        await objFactory.save();
+
+        await expencesModel.deleteOne({
+          paymentFactoryId: req.params.id,
+        });
       }
     );
 
-    // increse all balance (add cach Amount)
-    await FactoryAccountLogModel.updateMany(
-      { ourRequestId: objPaymentForFactory.ourRequestId._id },
-      {
-        $inc: { balance: objPaymentForFactory.cashAmount },
-      }
-    );
-
-    // // calculate (balance)
-    // let balance = 0;
-    // balance = new calculatePaymentFactory().calculateBalance(
-    //   objPaymentForFactory.ourRequestId.totalcost,
-    //   wasPaid
-    // );
-
-    // Remove Payment For Factory
-    await PaymentForFactory.deleteOne(filterPaymentForFactoryId);
-
-    await expencesModel.deleteOne({
-      paymentFactoryId: req.params.id,
-    });
     await session.commitTransaction();
     session.endSession();
 

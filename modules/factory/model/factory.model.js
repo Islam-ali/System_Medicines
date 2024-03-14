@@ -7,6 +7,7 @@ const factorySchema = new mongoose.Schema({
     ref: 'typeOfFactory',
     required: true,
   },
+  wasPaid:{type: Number , default:0}
   // Other fields related to factory
 });
 

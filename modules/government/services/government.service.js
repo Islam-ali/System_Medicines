@@ -1,6 +1,7 @@
 const governmentModel = require("../model/government.model");
 const { validationResult } = require("express-validator");
 const convertArray = require("../../../core/shared/errorForm");
+const city = require("../../city/model/city.model");
 
 // get All type of Factories
 exports.getAllGovernment = async (req, res, next) => {
@@ -18,7 +19,6 @@ exports.getAllGovernment = async (req, res, next) => {
   }
 };
 
-
 exports.getGovernmentById = async (req, res) => {
   try {
     const objGovernment = await governmentModel.findOne({
@@ -27,7 +27,11 @@ exports.getGovernmentById = async (req, res) => {
     if (!objGovernment) {
       return res
         .status(404)
-        .json({statusCode: res.statusCode, message: "Government not found", data: objGovernment });
+        .json({
+          statusCode: res.statusCode,
+          message: "Government not found",
+          data: objGovernment,
+        });
     }
     res.status(200).json({
       statusCode: res.statusCode,
@@ -38,7 +42,6 @@ exports.getGovernmentById = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
-
 
 // create Government
 exports.createGovernment = async (req, res, next) => {
@@ -96,7 +99,7 @@ exports.updateGovernment = async (req, res, next) => {
         message: "not exist Government",
       });
     }
-    const filterexist = {name:req.body.name , _id:{ $ne:req.params.id}}
+    const filterexist = { name: req.body.name, _id: { $ne: req.params.id } };
     const existingname = await governmentModel.findOne(filterexist);
     if (existingname) {
       return res.status(400).json({
@@ -124,17 +127,26 @@ exports.updateGovernment = async (req, res, next) => {
 exports.deleteGovernment = async (req, res) => {
   try {
     const filter = { _id: req.params.id };
-    const existingType = await governmentModel.findOne(filter);
-    if (!existingType) {
+    const objGovernment = await governmentModel.findOne(filter);
+    if (!objGovernment) {
       return res.status(404).json({
         statusCode: res.statusCode,
         message: "Not Found Government",
+      });
+    }
+    const listOfCities = await city.find({ governmentId: objGovernment._id });
+    if (listOfCities.length > 0) {
+      return res.status(400).json({
+        statusCode: res.statusCode,
+        message: "deleted Faild",
+        data: listOfCities,
       });
     }
     await governmentModel.deleteOne(filter);
     res.status(201).json({
       statusCode: res.statusCode,
       message: "deleted Government successfully",
+      data: listOfCities,
     });
   } catch (error) {
     res

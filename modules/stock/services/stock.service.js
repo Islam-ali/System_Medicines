@@ -5,17 +5,18 @@ const mongoose = require("mongoose");
 const ourRequest = require("../../ourRequest/model/ourRequest.model");
 const OrderStatus = require("../../../core/enums/OrderStatus.enum");
 const { sum } = require("lodash");
+const logTransfer = require("../model/logTransferStock");
 
 // Get Factory Stock
 exports.getStock = async (req, res) => {
   const query = {};
-  if(req.query.status){
+  if (req.query.status) {
     query["status"] = req.query.status;
   }
   try {
     const listOfStock = await stockModel.aggregate([
       {
-        $match:query
+        $match: query,
       },
       {
         $lookup: {
@@ -268,9 +269,7 @@ exports.returnOurRequest = async (req, res) => {
     if (!objStock[0]) {
       return res.status(404).json({ message: "Stock not found" });
     }
-    console.log(
-      objStock[0].ourRequestId.unitsNumber , objStock[0].unitsNumber
-    );
+    console.log(objStock[0].ourRequestId.unitsNumber, objStock[0].unitsNumber);
     if (objStock[0].ourRequestId.unitsNumber !== objStock[0].unitsNumber) {
       return res.status(400).json({ message: "can't Return" });
     }
@@ -313,20 +312,47 @@ exports.transactionToBranchStock = async (req, res) => {
     if (objStock.unitsNumber < unitsNumber) {
       return res.status(400).json({ message: "units number more than stock" });
     }
-    // create new branch stock
-    const newBranchStock = {};
-    newBranchStock.stockId = stockId;
-    newBranchStock.userId = userId;
-    newBranchStock.publicPrice = publicPrice;
-    newBranchStock.unitsNumber = unitsNumber;
-    newBranchStock.date = date;
+
+    // check exist in branch stock
+    let objBranchStock = await branchStockModel.findOne({
+      patchNumber: objStock.patchNumber,
+      userId: userId,
+    });
+
+    if (objBranchStock) {
+      // Update branch stock
+      objBranchStock.publicPrice = publicPrice;
+      objBranchStock.unitsNumber += unitsNumber;
+      objBranchStock.patchNumber = objStock.patchNumber;
+      await objBranchStock.save();
+    } else {
+      // create new branch stock
+      objBranchStock = {
+        stockId: stockId,
+        userId: userId,
+        publicPrice: publicPrice,
+        unitsNumber: unitsNumber,
+        patchNumber: objStock.patchNumber,
+        date: date,
+      };
+      await branchStockModel.create(objBranchStock);
+    }
 
     // update stock
     objStock.unitsNumber = objStock.unitsNumber - unitsNumber;
     objStock.totalcost = objStock.unitsNumber * objStock.unitsCost;
 
-    await branchStockModel.create(newBranchStock);
     await objStock.save();
+
+    const objLogTransfer = new logTransfer({
+      stockId: objStock._id,
+      userId: userId,
+      unitsNumber: unitsNumber,
+      publicPrice: publicPrice,
+      totalcost: unitsNumber * publicPrice,
+      insertDate: date,
+    });
+    await objLogTransfer.save();
     res.status(201).json({
       statusCode: res.statusCode,
       message: "transaction successfully",
@@ -367,7 +393,20 @@ exports.transactionFromBranchStockToStock = async (req, res) => {
 
     objBranchStockModel.unitsNumber -= objBranchStockModel.unitsNumber;
     // Delete the branch stock and save the updated stock
-    await Promise.all([objBranchStockModel.save(), objStock.save()]);
+    await Promise.all([objBranchStockModel.save(), objStock.save()]).then(
+      async (result) => {
+        const objLogTransfer = new logTransfer({
+          orderStatus: OrderStatus.RETURN,
+          stockId: objStock._id,
+          userId: userId,
+          unitsNumber: unitsNumber,
+          publicPrice: publicPrice,
+          totalcost: unitsNumber * publicPrice,
+          insertDate: date,
+        });
+        await objLogTransfer.save();
+      }
+    );
 
     return res.status(201).json({
       statusCode: res.statusCode,
@@ -394,7 +433,7 @@ exports.getTotalAmountInStock = async (req, res) => {
       }
       return sum;
     }, 0);
-    const totalAmount = sum (listOfStock.map((stock) => stock.totalcost));
+    const totalAmount = sum(listOfStock.map((stock) => stock.totalcost));
 
     res.status(200).json({
       statusCode: res.statusCode,
@@ -402,7 +441,7 @@ exports.getTotalAmountInStock = async (req, res) => {
       data: {
         totalAmountRowMaterials: totalAmountRowMaterials,
         totalAmountManufacturing: totalAmountManufacturing,
-        totalAmount:totalAmount
+        totalAmount: totalAmount,
       },
     });
   } catch (error) {
@@ -415,7 +454,7 @@ exports.changeStatusStock = async (req, res) => {
     const objStock = await stockModel.findOne({
       _id: req.params.id,
     });
-    
+
     if (!objStock) {
       return res.status(404).json({
         message: "Branch stock not found",
@@ -428,6 +467,30 @@ exports.changeStatusStock = async (req, res) => {
       statusCode: res.statusCode,
       message: "successfully",
       data: objStock,
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+
+exports.getLogTransfer = async (req, res) => {
+  try {
+    const listOfLogTransfer = await logTransfer
+      .find()
+      .populate("stockId")
+      .populate("userId");
+    if (listOfLogTransfer.length == 0) {
+      return res.status(404).json({
+        statusCode: res.statusCode,
+        message: "stock not Result",
+        data: listOfLogTransfer,
+      });
+    }
+    res.status(200).json({
+      statusCode: res.statusCode,
+      message: "successfully",
+      data: listOfLogTransfer,
     });
   } catch (error) {
     res.status(500).json({ message: error.message });

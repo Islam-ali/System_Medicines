@@ -151,14 +151,14 @@ exports.getAllOurRequests = async (req, res) => {
     ]);
 
     // Iterate through each OurRequest document
-    for (const request of ourRequests) {
-      // Find all PaymentForFactory documents associated with the current OurRequest
-      const payments = await PaymentForFactoryModel.find({
-        ourRequestId: request._id,
-      }).lean();
-      // Add the found payments to the current OurRequest document
-      request.listOfPayments = payments;
-    }
+    // for (const request of ourRequests) {
+    //   // Find all PaymentForFactory documents associated with the current OurRequest
+    //   const payments = await PaymentForFactoryModel.find({
+    //     ourRequestId: request._id,
+    //   }).lean();
+    //   // Add the found payments to the current OurRequest document
+    //   request.listOfPayments = payments;
+    // }
     res.status(200).json({
       statusCode: res.statusCode,
       message: "successfully",

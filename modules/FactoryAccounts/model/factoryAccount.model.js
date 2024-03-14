@@ -5,17 +5,9 @@ const FactoryAccountLogSchema = new mongoose.Schema({
     ref: "OurRequest",
     required: true,
   },
-  paymentForFactoryId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "PaymentForFactory",
-    required: true,
-  },
   wayOfPaymentId: { type: Number},
   cashAmount: { type: Number, required: true, default: 0 },
   cashDate: { type: Date, required: true },
-  balance: { type: Number, required: true, default: 0 },
-  note: { type: String },
-  itemName: { type: String },
 });
 
 const FactoryAccountLog = mongoose.model(

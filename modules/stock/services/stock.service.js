@@ -345,6 +345,7 @@ exports.transactionToBranchStock = async (req, res) => {
     await objStock.save();
 
     const objLogTransfer = new logTransfer({
+      orderStatus: OrderStatus.SENT,
       stockId: objStock._id,
       userId: userId,
       unitsNumber: unitsNumber,
@@ -398,11 +399,12 @@ exports.transactionFromBranchStockToStock = async (req, res) => {
         const objLogTransfer = new logTransfer({
           orderStatus: OrderStatus.RETURN,
           stockId: objStock._id,
-          userId: userId,
-          unitsNumber: unitsNumber,
-          publicPrice: publicPrice,
-          totalcost: unitsNumber * publicPrice,
-          insertDate: date,
+          userId: objBranchStockModel.userId,
+          unitsNumber: objBranchStockModel.unitsNumber,
+          publicPrice: objBranchStockModel.publicPrice,
+          totalcost:
+            objBranchStockModel.unitsNumber * objBranchStockModel.publicPrice,
+          insertDate: new Date(),
         });
         await objLogTransfer.save();
       }
@@ -476,17 +478,52 @@ exports.changeStatusStock = async (req, res) => {
 
 exports.getLogTransfer = async (req, res) => {
   try {
-    const listOfLogTransfer = await logTransfer
-      .find()
-      .populate("stockId")
-      .populate("userId");
-    if (listOfLogTransfer.length == 0) {
-      return res.status(404).json({
-        statusCode: res.statusCode,
-        message: "stock not Result",
-        data: listOfLogTransfer,
-      });
-    }
+    const listOfLogTransfer = await logTransfer.aggregate([
+      {
+        $lookup: {
+          from: "stocks",
+          localField: "stockId",
+          foreignField: "_id",
+          as: "stockId",
+        },
+      },
+      {
+        $lookup: {
+          from: "ourrequests",
+          localField: "stockId.ourRequestId",
+          foreignField: "_id",
+          as: "ourRequestId",
+        },
+      },
+      { $unwind: "$ourRequestId" },
+      {
+        $lookup: {
+          from: "factories",
+          localField: "ourRequestId.factoryId",
+          foreignField: "_id",
+          as: "factoryId",
+        },
+      },
+      { $unwind: "$factoryId" },
+      {
+        $lookup: {
+          from: "itemsfactories",
+          localField: "ourRequestId.itemFactoryId",
+          foreignField: "_id",
+          as: "itemFactoryId",
+        },
+      },
+      { $unwind: "$itemFactoryId" },
+      {
+        $lookup: {
+          from: "users",
+          localField: "userId",
+          foreignField: "_id",
+          as: "userId",
+        },
+      },
+      { $unwind: "$userId" },
+    ]);
     res.status(200).json({
       statusCode: res.statusCode,
       message: "successfully",

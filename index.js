@@ -144,9 +144,10 @@ app.use(
   "/other-services",
   require("./modules/other-services/routes/other-services.route.js")
 );
-
-
-
+app.use(
+  "/treasur",
+  require("./modules/treasur/routes/treasur.route.js")
+);
 
 
 

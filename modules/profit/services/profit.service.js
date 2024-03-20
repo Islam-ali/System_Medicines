@@ -46,7 +46,7 @@ exports.getAllIncomes = async (req, res, next) => {
     // Calculate total profit
     const totalRecived = sum(allIncomes.map((income) => income.amount));
     const listOfSales = await sale.find();
-    const totalSalesValue = sum(listOfSales.map(sale => sale.salesValue))
+    const totalSalesValue = sum(listOfSales.map((sale) => sale.salesValue));
     // const totalBalance = sum(allIncomes.map((income) => income.balance));
 
     res.status(200).json({
@@ -141,7 +141,7 @@ exports.getAllProfitIncomes = async (req, res, next) => {
     const year = new Date(queryDate).getFullYear();
     const month = new Date(queryDate).getMonth() + 1; // Months are zero-based, so add 1
     let matchQuery = {};
-    if(queryDate){
+    if (queryDate) {
       matchQuery = {
         $expr: {
           $and: [
@@ -151,10 +151,10 @@ exports.getAllProfitIncomes = async (req, res, next) => {
         },
       };
     }
-    let userQuery = {}
+    let userQuery = {};
     const isAllow = req.roleName == UserRole.ADMIN;
-    if(!isAllow){
-      userQuery['recipientId'] = req.userId
+    if (!isAllow) {
+      userQuery["recipientId"] = req.userId;
     }
     const allIncomes = await paymentClientModel.aggregate([
       {
@@ -200,7 +200,7 @@ exports.getAllProfitIncomes = async (req, res, next) => {
     const totalRecived = sum(allIncomes.map((profit) => profit.amount));
 
     const listOfSales = await sale.find({});
-    const totalSalesValue = sum(listOfSales.map(sale => sale.salesValue))
+    const totalSalesValue = sum(listOfSales.map((sale) => sale.salesValue));
 
     res.status(200).json({
       statusCode: 200,
@@ -209,7 +209,7 @@ exports.getAllProfitIncomes = async (req, res, next) => {
       totalRecived: totalRecived,
       totalPharmacy: totalPharmacy,
       totalStore: totalStore,
-      totalSalesValue:totalSalesValue
+      totalSalesValue: totalSalesValue,
     });
   } catch (error) {
     res
@@ -356,6 +356,53 @@ exports.getAllProfitAndIncomesAndExpences = async (req, res, next) => {
       {
         $replaceRoot: { newRoot: "$salaries" },
       },
+      {
+        $facet: {
+          withOtherService: [
+            {
+              $match: {
+                otherServiceId: { $exists: true },
+              },
+            },
+            {
+              $lookup: {
+                from: "otherServices",
+                localField: "otherServiceId",
+                foreignField: "_id",
+                as: "otherServiceId",
+              },
+            },
+            {
+              $lookup: {
+                from: "users",
+                localField: "otherServiceId.creationBy",
+                foreignField: "_id",
+                as: "creationBy",
+              },
+            },
+          ],
+          withOutOtherService: [
+            {
+              $match: {
+                otherServiceId: { $exists: false },
+              },
+            },
+          ],
+        },
+      },
+      {
+        $project: {
+          otherServices: {
+            $concatArrays: ["$withOtherService", "$withOutOtherService"],
+          },
+        },
+      },
+      {
+        $unwind: "$otherServices",
+      },
+      {
+        $replaceRoot: { newRoot: "$otherServices" },
+      },
     ]);
 
     const totalCashAmount = sum(allExpences.map((income) => income.amount));
@@ -381,6 +428,12 @@ exports.getAllProfitAndIncomesAndExpences = async (req, res, next) => {
       return sum;
     }, 0);
 
+    const totalCashAmountOtherService = allExpences.reduce((sum, item) => {
+      if (item.typeExpences === "otherService") {
+        return sum + item.amount;
+      }
+      return sum;
+    }, 0);
     res.status(200).json({
       statusCode: res.statusCode,
       message: "successfully",
@@ -388,6 +441,7 @@ exports.getAllProfitAndIncomesAndExpences = async (req, res, next) => {
         totalCashAmountpaymentFactory: totalCashAmountpaymentFactory | 0,
         totalCashAmountServices: totalCashAmountServices | 0,
         totalCashAmountSalaries: totalCashAmountSalaries | 0,
+        totalCashAmountOtherService: totalCashAmountOtherService | 0,
         totalCashAmount: totalCashAmount | 0,
         totalRecived: totalRecived | 0,
         profit: totalRecived - totalCashAmount,
@@ -535,6 +589,53 @@ exports.getAllProfitAndIncomesAndExpencesInYear = async (req, res, next) => {
       {
         $replaceRoot: { newRoot: "$salaries" },
       },
+      {
+        $facet: {
+          withOtherService: [
+            {
+              $match: {
+                otherServiceId: { $exists: true },
+              },
+            },
+            {
+              $lookup: {
+                from: "otherServices",
+                localField: "otherServiceId",
+                foreignField: "_id",
+                as: "otherServiceId",
+              },
+            },
+            {
+              $lookup: {
+                from: "users",
+                localField: "otherServiceId.creationBy",
+                foreignField: "_id",
+                as: "creationBy",
+              },
+            },
+          ],
+          withOutOtherService: [
+            {
+              $match: {
+                otherServiceId: { $exists: false },
+              },
+            },
+          ],
+        },
+      },
+      {
+        $project: {
+          otherServices: {
+            $concatArrays: ["$withOtherService", "$withOutOtherService"],
+          },
+        },
+      },
+      {
+        $unwind: "$otherServices",
+      },
+      {
+        $replaceRoot: { newRoot: "$otherServices" },
+      },
     ]);
 
     const totalCashAmount = sum(allExpences.map((income) => income.amount));
@@ -559,7 +660,12 @@ exports.getAllProfitAndIncomesAndExpencesInYear = async (req, res, next) => {
       }
       return sum;
     }, 0);
-
+    const totalCashAmountOtherService = allExpences.reduce((sum, item) => {
+      if (item.typeExpences === "otherService") {
+        return sum + item.amount;
+      }
+      return sum;
+    }, 0);
     res.status(200).json({
       statusCode: res.statusCode,
       message: "successfully",
@@ -567,6 +673,8 @@ exports.getAllProfitAndIncomesAndExpencesInYear = async (req, res, next) => {
         totalCashAmountpaymentFactory: totalCashAmountpaymentFactory | 0,
         totalCashAmountServices: totalCashAmountServices | 0,
         totalCashAmountSalaries: totalCashAmountSalaries | 0,
+        totalCashAmountOtherService: totalCashAmountOtherService | 0,
+
         totalCashAmount: totalCashAmount | 0,
         totalRecived: totalRecived | 0,
         profit: totalRecived - totalCashAmount,
@@ -582,7 +690,7 @@ exports.getAllProfitAndIncomesAndExpencesInYear = async (req, res, next) => {
 exports.getStatisticsAccountGroupbyYear = async (req, res, next) => {
   try {
     const months = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
-    const yearQuery = req.query.year
+    const yearQuery = req.query.year;
     const year = new Date(yearQuery).getFullYear();
     const matchQueryIncome = {
       $expr: {

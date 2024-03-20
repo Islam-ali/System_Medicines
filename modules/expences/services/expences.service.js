@@ -152,6 +152,53 @@ exports.getAllExpences = async (req, res, next) => {
       {
         $replaceRoot: { newRoot: "$services" },
       },
+      {
+        $facet: {
+          withOtherService: [
+            {
+              $match: {
+                otherServiceId: { $exists: true },
+              },
+            },
+            {
+              $lookup: {
+                from: "otherServices",
+                localField: "otherServiceId",
+                foreignField: "_id",
+                as: "otherServiceId",
+              },
+            },
+            {
+              $lookup: {
+                from: "users",
+                localField: "otherServiceId.creationBy",
+                foreignField: "_id",
+                as: "creationBy",
+              },
+            },
+          ],
+          withOutOtherService: [
+            {
+              $match: {
+                otherServiceId: { $exists: false },
+              },
+            },
+          ],
+        },
+      },
+      {
+        $project: {
+          otherServices: {
+            $concatArrays: ["$withOtherService", "$withOutOtherService"],
+          },
+        },
+      },
+      {
+        $unwind: "$otherServices",
+      },
+      {
+        $replaceRoot: { newRoot: "$otherServices" },
+      },
     ]);
 
     const totalCashAmount = sum(allExpences.map((income) => income.amount));
@@ -171,7 +218,14 @@ exports.getAllExpences = async (req, res, next) => {
     }, 0);
 
     const totalCashAmountServices = allExpences.reduce((sum, item) => {
-      if (item.typeExpences === "salary") {
+      if (item.typeExpences === "service") {
+        return sum + item.amount;
+      }
+      return sum;
+    }, 0);
+
+    const totalCashAmountOtherService = allExpences.reduce((sum, item) => {
+      if (item.typeExpences === "otherService") {
         return sum + item.amount;
       }
       return sum;
@@ -184,6 +238,7 @@ exports.getAllExpences = async (req, res, next) => {
       totalCashAmountpaymentFactory: totalCashAmountpaymentFactory | 0,
       totalCashAmountServices: totalCashAmountServices | 0,
       totalCashAmountSalaries: totalCashAmountSalaries | 0,
+      totalCashAmountOtherService: totalCashAmountOtherService | 0,
       totalCashAmount: totalCashAmount | 0,
     });
   } catch (error) {

@@ -4,17 +4,22 @@ const expencesSchema = new mongoose.Schema({
   paymentFactoryId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "PaymentForFactory",
-    default: null
+    default: null,
   },
   salaryId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "salaries",
-    default: null
+    default: null,
   },
   serviceId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "service",
-    default: null
+    default: null,
+  },
+  otherServiceId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "otherServices",
+    default: null,
   },
   amount: { type: Number, required: true },
   cashDate: { type: Date, required: true },

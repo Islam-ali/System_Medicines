@@ -25,13 +25,11 @@ exports.getGovernmentById = async (req, res) => {
       _id: req.params.id,
     });
     if (!objGovernment) {
-      return res
-        .status(404)
-        .json({
-          statusCode: res.statusCode,
-          message: "Government not found",
-          data: objGovernment,
-        });
+      return res.status(404).json({
+        statusCode: res.statusCode,
+        message: "Government not found",
+        data: objGovernment,
+      });
     }
     res.status(200).json({
       statusCode: res.statusCode,

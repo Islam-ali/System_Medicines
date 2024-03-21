@@ -3,6 +3,7 @@ const { validationResult } = require("express-validator");
 const convertArray = require("../../../core/shared/errorForm");
 const { sum } = require("lodash");
 const expencesModel = require("../../expences/model/expences.model");
+const treasurAmount = require("../../treasur/model/treasurAmount.model");
 
 // get All type of Factories
 exports.getAllServices = async (req, res, next) => {
@@ -84,22 +85,6 @@ exports.createService = async (req, res, next) => {
     });
   }
   try {
-    // const objUser = await saleModel.findOne({ _id: body.saleId }).populate({
-    //   path: "branchStockId",
-    //   model: "branchStock",
-    //   populate: {
-    //     path: "stockId",
-    //     model: "Stock",
-    //   },
-    // });
-
-    // if (objUser) {
-    //   return res.status(400).json({
-    //     statusCode: res.statusCode,
-    //     message: "Employee is Not Found",
-    //   });
-    // }
-
     await serviceModel.create(body).then(async (result) => {
       const objExpences = new expencesModel({
         typeExpences: "service",
@@ -110,6 +95,10 @@ exports.createService = async (req, res, next) => {
         cashDate: body.date,
       });
 
+      let objTreasurAmount = await treasurAmount.findOne({ id: 1 });
+      objTreasurAmount.amount -= body.amount;
+
+      await objTreasurAmount.save();
       await objExpences.save();
     });
 
@@ -157,7 +146,7 @@ exports.updateService = async (req, res, next) => {
     const objExpences = {
       typeExpences: "service",
       paymentFactoryId: null,
-      salaryId:null,
+      salaryId: null,
       amount: body.amount,
       cashDate: body.date,
     };
@@ -169,6 +158,10 @@ exports.updateService = async (req, res, next) => {
         $set: objExpences,
       }
     );
+    let objTreasurAmount = await treasurAmount.findOne({ id: 1 });
+    objTreasurAmount.amount += objserviceModel.amount;
+    objTreasurAmount.amount -= body.amount;
+    await objTreasurAmount.save();
     res.status(201).json({
       statusCode: res.statusCode,
       message: "Update Salary successfully",
@@ -194,10 +187,13 @@ exports.deleteService = async (req, res) => {
       });
     }
 
-    await serviceModel.deleteOne({_id:req.params.id});
+    await serviceModel.deleteOne({ _id: req.params.id });
     await expencesModel.deleteOne({
       serviceId: req.params.id,
     });
+    let objTreasurAmount = await treasurAmount.findOne({ id: 1 });
+    objTreasurAmount.amount += objserviceModel.amount;
+    await objTreasurAmount.save();
     res.status(201).json({
       statusCode: res.statusCode,
       message: "deleted salary successfully",

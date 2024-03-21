@@ -12,7 +12,7 @@ router.post('/createSalaries' , verifyToken , checkPermission('user.create') ,va
 
 router.put('/updateSalaries/:id' , verifyToken , checkPermission('user.update'),validateSalaries , Salaries.updateSalaries);
 
-router.delete('/deleteSalaries/:id' , verifyToken , checkPermission('user.dalete') , Salaries.deleteSalaries);
+router.delete('/deleteSalaries/:id' , verifyToken , checkPermission('user.delete') , Salaries.deleteSalaries);
 
 
 module.exports = router;

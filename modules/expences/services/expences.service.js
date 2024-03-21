@@ -201,7 +201,7 @@ exports.getAllExpences = async (req, res, next) => {
       },
     ]);
 
-    const totalCashAmount = sum(allExpences.map((income) => income.amount));
+    const totalCashAmount = sum(allExpences.map((expence) => expence.amount));
 
     const totalCashAmountpaymentFactory = allExpences.reduce((sum, item) => {
       if (item.typeExpences === "FactoryPayment") {

@@ -34,4 +34,12 @@ router.delete(
   treasur.deleteTreasur
 );
 
+router.get(
+  "/getTotalTreasur",
+  verifyToken,
+  checkPermission("stock.read"),
+  treasur.getTotalTreasur
+);
+
+
 module.exports = router;

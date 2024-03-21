@@ -4,6 +4,7 @@ const convertArray = require("../../../core/shared/errorForm");
 const mongoose = require("mongoose");
 const { sum } = require("lodash");
 const expencesModel = require("../../expences/model/expences.model");
+const treasurAmount = require("../../treasur/model/treasurAmount.model");
 
 // get All type of Factories
 exports.getAllSalaries = async (req, res, next) => {
@@ -109,8 +110,10 @@ exports.createSalaries = async (req, res, next) => {
         amount: body.amount,
         cashDate: body.date,
       });
-
       await objExpences.save();
+      let objTreasurAmount = await treasurAmount.findOne({ id: 1 });
+      objTreasurAmount.amount -= body.amount;
+      await objTreasurAmount.save();
     });
 
     res.status(201).json({
@@ -168,6 +171,10 @@ exports.updateSalaries = async (req, res, next) => {
         $set: objExpences,
       }
     );
+    let objTreasurAmount = await treasurAmount.findOne({ id: 1 });
+    objTreasurAmount.amount += objsalariesModel.amount;
+    objTreasurAmount.amount -= body.amount;
+    await objTreasurAmount.save();
     res.status(201).json({
       statusCode: res.statusCode,
       message: "Update Salary successfully",
@@ -193,10 +200,13 @@ exports.deleteSalaries = async (req, res) => {
       });
     }
 
-    await salariesModel.deleteOne({_id:req.params.id});
+    await salariesModel.deleteOne({ _id: req.params.id });
     await expencesModel.deleteOne({
       salaryId: req.params.id,
     });
+    let objTreasurAmount = await treasurAmount.findOne({ id: 1 });
+    objTreasurAmount.amount += objsalariesModel.amount;
+    await objTreasurAmount.save();
     res.status(201).json({
       statusCode: res.statusCode,
       message: "deleted salary successfully",

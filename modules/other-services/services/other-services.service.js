@@ -3,6 +3,7 @@ const convertArray = require("../../../core/shared/errorForm");
 const { sum } = require("lodash");
 const expencesModel = require("../../expences/model/expences.model");
 const otherServices = require("../model/other-services.model");
+const treasurAmount = require("../../treasur/model/treasurAmount.model");
 
 // get All type of Factories
 exports.getAllOtherServices = async (req, res, next) => {
@@ -92,7 +93,9 @@ exports.createOtherService = async (req, res, next) => {
         amount: body.amount,
         cashDate: body.date,
       });
-
+      let objTreasurAmount = await treasurAmount.findOne({ id: 1 });
+      objTreasurAmount.amount -= body.amount;
+      await objTreasurAmount.save();
       await objExpences.save();
     });
 
@@ -124,8 +127,7 @@ exports.updateOtherService = async (req, res, next) => {
     });
   }
   try {
-    const objotherServices = await otherServices
-      .findById(otherServiceId)
+    const objotherServices = await otherServices.findById(otherServiceId);
     if (!objotherServices) {
       return res.status(404).json({
         statusCode: res.statusCode,
@@ -150,6 +152,10 @@ exports.updateOtherService = async (req, res, next) => {
         $set: objExpences,
       }
     );
+    let objTreasurAmount = await treasurAmount.findOne({ id: 1 });
+    objTreasurAmount.amount += objotherServices.amount;
+    objTreasurAmount.amount -= body.amount;
+    await objTreasurAmount.save();
     res.status(201).json({
       statusCode: res.statusCode,
       message: "Update Expence successfully",
@@ -165,8 +171,7 @@ exports.updateOtherService = async (req, res, next) => {
 exports.deleteOtherService = async (req, res) => {
   const otherServiceId = req.params.id;
   try {
-    const objotherServices = await otherServices
-      .findById(otherServiceId)
+    const objotherServices = await otherServices.findById(otherServiceId);
     if (!objotherServices) {
       return res.status(404).json({
         statusCode: res.statusCode,
@@ -174,10 +179,13 @@ exports.deleteOtherService = async (req, res) => {
       });
     }
 
-    await otherServices.deleteOne({_id:req.params.id});
+    await otherServices.deleteOne({ _id: req.params.id });
     await expencesModel.deleteOne({
       otherServiceId: req.params.id,
     });
+    let objTreasurAmount = await treasurAmount.findOne({ id: 1 });
+    objTreasurAmount.amount += objotherServices.amount;
+    await objTreasurAmount.save();
     res.status(201).json({
       statusCode: res.statusCode,
       message: "deleted Expence successfully",

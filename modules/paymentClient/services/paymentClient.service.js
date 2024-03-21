@@ -7,6 +7,7 @@ const methodTypeEnum = require("../../../core/enums/methoType.enum");
 const typeLogClientEnum = require("../../../core/enums/typeLogClient.enum");
 const mongoose = require("mongoose");
 const { clientModel } = require("../../client/model/client.model");
+const treasurAmount = require("../../treasur/model/treasurAmount.model");
 
 // get All type of Factories
 exports.getAllPaymentClient = async (req, res, next) => {
@@ -120,6 +121,9 @@ exports.createPaymentClient = async (req, res, next) => {
         methodName: methodTypeEnum.CREATE,
         creationDate: new Date(),
       };
+      let objTreasurAmount = await treasurAmount.findOne({ id: 1 });
+      objTreasurAmount.amount += body.amount;
+      await objTreasurAmount.save();
       await logClientModel.create(objLogClient);
     });
     await session.commitTransaction();
@@ -194,6 +198,10 @@ exports.updatePaymentClient = async (req, res, next) => {
         methodName: methodTypeEnum.UPDATE,
         creationDate: new Date(),
       };
+      let objTreasurAmount = await treasurAmount.findOne({ id: 1 });
+      objTreasurAmount.amount -= CopyObjPaymentClient.amount;
+      objTreasurAmount.amount += body.amount;
+      await objTreasurAmount.save();
       await logClientModel.create(objLogClient);
     });
     await session.commitTransaction();
@@ -242,6 +250,9 @@ exports.deletePaymentClient = async (req, res) => {
         methodName: methodTypeEnum.DELETE,
         creationDate: new Date(),
       };
+      let objTreasurAmount = await treasurAmount.findOne({ id: 1 });
+      objTreasurAmount.amount -= objpaymentClientModel.amount;
+      await objTreasurAmount.save();
       await logClientModel.create(objLogClient);
     });
 

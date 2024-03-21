@@ -5,6 +5,7 @@ const mongoose = require("mongoose");
 const expencesModel = require("../../expences/model/expences.model");
 const { sum } = require("lodash");
 const Factory = require("../../factory/model/factory.model");
+const treasurAmount = require("../../treasur/model/treasurAmount.model");
 
 exports.totalCashAmountAndBalanceByMonthPaymentFactory = async (req, res) => {
   const classificationId = req.query.classificationId;
@@ -104,7 +105,7 @@ exports.totalCashAmountAndBalanceByYearPaymentFactory = async (req, res) => {
   const factoryId = req.query.factoryId;
   let query = {}; // Months are zero-based, so add 1
   if (factoryId) {
-    query["factoryId._id"] =  new mongoose.Types.ObjectId(factoryId);
+    query["factoryId._id"] = new mongoose.Types.ObjectId(factoryId);
   }
   if (classificationId) {
     query["typeOfFactoryId.classificationId"] = parseInt(classificationId);
@@ -221,7 +222,9 @@ exports.createPaymentForFactory = async (req, res) => {
         amount: cashAmount,
         cashDate: cashDate,
       });
-
+      let objTreasurAmount = await treasurAmount.findOne({ id: 1 });
+      objTreasurAmount.amount -= body.cashAmount;
+      await objTreasurAmount.save();
       await objFactory.save();
       await objExpences.save();
     });
@@ -456,7 +459,8 @@ exports.updatePaymentForFactory = async (req, res) => {
     }
 
     objFactory.wasPaid -= objPaymentFactory.cashAmount;
-    console.log(objFactory.wasPaid);
+
+    copyObjPaymentFactory = JSON.parse(JSON.stringify(objPaymentFactory));
 
     objPaymentFactory.cashAmount = cashAmount;
     objPaymentFactory.factoryId = factoryId;
@@ -479,7 +483,11 @@ exports.updatePaymentForFactory = async (req, res) => {
       });
       objExpences.amount = cashAmount;
       objExpences.cashDate = cashDate;
+      let objTreasurAmount = await treasurAmount.findOne({ id: 1 });
+      objTreasurAmount.amount += copyObjPaymentFactory.cashAmount;
 
+      objTreasurAmount.amount -= cashAmount;
+      await objTreasurAmount.save();
       await objExpences.save();
     });
 
@@ -522,6 +530,7 @@ exports.deletePaymentForFactory = async (req, res) => {
         message: "not exist Factory",
       });
     }
+    copyObjPaymentFactory = JSON.parse(JSON.stringify(objPaymentFactory));
 
     objFactory.wasPaid -= objPaymentFactory.cashAmount;
 
@@ -529,6 +538,10 @@ exports.deletePaymentForFactory = async (req, res) => {
       async (result) => {
         await objFactory.save();
 
+        let objTreasurAmount = await treasurAmount.findOne({ id: 1 });
+        objTreasurAmount.amount += copyObjPaymentFactory.cashAmount;
+
+        await objTreasurAmount.save();
         await expencesModel.deleteOne({
           paymentFactoryId: req.params.id,
         });

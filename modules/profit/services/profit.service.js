@@ -744,6 +744,11 @@ exports.getStatisticsAccountGroupbyYear = async (req, res, next) => {
               $cond: [{ $eq: ["$typeExpences", "service"] }, "$amount", 0],
             },
           }, // Calculate total services amount for each month
+          totalOtherExpences: {
+            $sum: {
+              $cond: [{ $eq: ["$typeExpences", "otherService"] }, "$amount", 0],
+            },
+          }, // Calculate total services amount for each month
           count: { $sum: 1 }, // Count the number of expenses for each month
         },
       },
@@ -760,6 +765,7 @@ exports.getStatisticsAccountGroupbyYear = async (req, res, next) => {
           totalPayments: 0,
           totalSalaries: 0,
           totalServices: 0,
+          totalOtherExpences:0,
           count: 0,
         });
       }

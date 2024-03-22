@@ -1,5 +1,6 @@
 const mongoose = require("mongoose");
 const OrderStatus = require("../../../core/enums/OrderStatus.enum");
+const orderType = require("../../../core/enums/orderType.enum");
 const ourRequestSchema = new mongoose.Schema({
   itemFactoryId: {
     type: mongoose.Schema.Types.ObjectId,
@@ -13,14 +14,18 @@ const ourRequestSchema = new mongoose.Schema({
   },
   orderStatus: {
     type: String,
-    enum: [OrderStatus.PENDDING, OrderStatus.RECIVED , OrderStatus.RETURN],
+    enum: [OrderStatus.PENDDING, OrderStatus.RECIVED, OrderStatus.RETURN],
     default: OrderStatus.PENDDING,
+  },
+  orderType: {
+    type: String,
+    enum: [orderType.GOODS, orderType.SAMPLE],
+    default: orderType.GOODS,
   },
   unitsNumber: { type: Number, required: true },
   unitsCost: { type: Number, required: true },
-  itemName: { type: String, required: true },
+  // itemName: { type: String, required: true },
   code: { type: Number, required: true, uniqe: true },
-
   totalcost: { type: Number },
   wasPaid: { type: Number, default: 0 },
   balance: { type: Number, default: 0 },
@@ -48,7 +53,7 @@ const ourRequestSchema = new mongoose.Schema({
       },
       _id: {
         type: mongoose.Schema.Types.ObjectId,
-        required: true
+        required: true,
       },
     },
   ],

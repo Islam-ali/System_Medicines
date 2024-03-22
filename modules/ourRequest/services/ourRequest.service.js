@@ -70,7 +70,7 @@ exports.createOurRequest = async (req, res) => {
           if (newUnitsNumber < 0) {
             return res.status(400).json({
               statusCode: res.statusCode,
-              message: `The required number of units in the ${stock.itemName} is not available in stock`,
+              message: `The required number of units in the Item is not available in stock`,
             });
           } else {
             const newTotalCost = new calculate().totalCost(
@@ -102,7 +102,7 @@ exports.createOurRequest = async (req, res) => {
 
     const mapBody = {
       ...body,
-      itemName: objItemFactory.name,
+      // itemName: objItemFactory.name,
     };
     await OurRequest.create(mapBody);
     return res.status(201).json({
@@ -136,6 +136,15 @@ exports.getAllOurRequests = async (req, res) => {
         },
       },
       { $unwind: "$factoryId" },
+      {
+        $lookup: {
+          from: "itemsfactories",
+          localField: "itemFactoryId",
+          foreignField: "_id",
+          as: "itemFactoryId",
+        },
+      },
+      { $unwind: "$itemFactoryId" },
       {
         $lookup: {
           from: "typeoffactories",
@@ -353,7 +362,7 @@ exports.updateOurRequest = async (req, res) => {
           if (newUnitsNumber < 0) {
             return res.status(400).json({
               statusCode: res.statusCode,
-              message: `The required number of units in the ${stock.itemName} is not available in stock`,
+              message: `The required number of units in the Item is not available in stock`,
             });
           } else {
             const newTotalCost = new calculate().totalCost(
@@ -430,7 +439,7 @@ exports.changeOrderStatus = async (req, res) => {
       const stockRequest = new stockModel({
         classificationId: classificationId,
         ourRequestId: objOurRequest._id,
-        itemName: objOurRequest.itemName,
+        // itemName: objOurRequest.itemName,
         itemFactoryId: objOurRequest.itemFactoryId._id,
         typeofFactory:
           objOurRequest.itemFactoryId.factoryId.typeOfFactoryId.type,
@@ -450,7 +459,7 @@ exports.changeOrderStatus = async (req, res) => {
       await OurRequest.updateOne(filter, updateDocument);
       await stockRequest.save().then(async (result) => {
         const objLogStock = new logStock({
-          itemName: objOurRequest.itemName,
+          itemName: objOurRequest.itemFactoryId.name,
           factoryName: objOurRequest.itemFactoryId.factoryId.name,
           unitsNumber: objOurRequest.unitsNumber,
           unitsCost: objOurRequest.unitsCost,

@@ -45,7 +45,11 @@ exports.getAllIncomes = async (req, res, next) => {
     ]);
     // Calculate total profit
     const totalRecived = sum(allIncomes.map((income) => income.amount));
-    const listOfSales = await sale.find();
+    const listOfSales = await sale.aggregate([
+      {
+        $match: matchQuery,
+      },
+    ]);
     const totalSalesValue = sum(listOfSales.map((sale) => sale.salesValue));
     // const totalBalance = sum(allIncomes.map((income) => income.balance));
 
@@ -198,8 +202,11 @@ exports.getAllProfitIncomes = async (req, res, next) => {
     }, 0);
 
     const totalRecived = sum(allIncomes.map((profit) => profit.amount));
-
-    const listOfSales = await sale.find({});
+    const listOfSales = await sale.aggregate([
+      {
+        $match: matchQuery,
+      },
+    ]);
     const totalSalesValue = sum(listOfSales.map((sale) => sale.salesValue));
 
     res.status(200).json({

@@ -13,11 +13,11 @@ exports.getStock = async (req, res) => {
   if (req.query.status) {
     query["status"] = req.query.status;
   }
+    if (req.query.orderType) {
+      query["ourRequestId.orderType"] = req.query.orderType;
+    }
   try {
     const listOfStock = await stockModel.aggregate([
-      {
-        $match: query,
-      },
       {
         $lookup: {
           from: "ourrequests",
@@ -28,6 +28,9 @@ exports.getStock = async (req, res) => {
       },
       { $unwind: "$ourRequestId" },
       {
+        $match: query,
+      },
+      {
         $lookup: {
           from: "factories",
           localField: "ourRequestId.factoryId",
@@ -36,6 +39,15 @@ exports.getStock = async (req, res) => {
         },
       },
       { $unwind: "$factoryId" },
+      {
+        $lookup: {
+          from: "itemsfactories",
+          localField: "itemFactoryId",
+          foreignField: "_id",
+          as: "itemFactoryId",
+        },
+      },
+      { $unwind: "$itemFactoryId" },
       {
         $lookup: {
           from: "typeoffactories",
@@ -56,7 +68,7 @@ exports.getStock = async (req, res) => {
         $group: {
           _id: "$itemFactoryId",
           stocks: { $push: "$$ROOT" },
-          itemName: { $first: "$itemName" },
+          itemName: { $first: "$itemFactoryId.name" },
           factoryType: { $first: "$typeOfFactoryId.type" },
           totalcost: { $sum: "$totalcost" },
           totalUnitsNumber: { $sum: "$unitsNumber" },
@@ -102,6 +114,15 @@ exports.getStockByClassificationId = async (req, res) => {
         },
       },
       { $unwind: "$factoryId" },
+      {
+        $lookup: {
+          from: "itemsfactories",
+          localField: "itemFactoryId",
+          foreignField: "_id",
+          as: "itemFactoryId",
+        },
+      },
+      { $unwind: "$itemFactoryId" },
       {
         $match: query,
       },
@@ -264,6 +285,15 @@ exports.returnOurRequest = async (req, res) => {
         },
       },
       { $unwind: "$factoryId" },
+      {
+        $lookup: {
+          from: "itemsfactories",
+          localField: "ourRequestId.itemFactoryId",
+          foreignField: "_id",
+          as: "itemFactoryId",
+        },
+      },
+      { $unwind: "$itemFactoryId" },
     ]);
 
     if (!objStock[0]) {
@@ -280,7 +310,7 @@ exports.returnOurRequest = async (req, res) => {
     await ourRequest.updateOne(filter, updateDocument).then(async (result) => {
       await stockModel.deleteOne({ _id: req.params.id });
       const objLogStock = new logStock({
-        itemName: objStock[0].ourRequestId.itemName,
+        itemName: objStock[0].ourRequestId.itemFactoryId.name,
         factoryName: objStock[0].factoryId.name,
         unitsNumber: objStock[0].ourRequestId.unitsNumber,
         unitsCost: objStock[0].ourRequestId.unitsCost,

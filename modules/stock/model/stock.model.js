@@ -13,7 +13,7 @@ const stockSchema = new mongoose.Schema({
     required: true,
   },
   classificationId: { type: Number, required: true },
-  itemName: { type: String, required: true },
+  // itemName: { type: String, required: true },
   typeofFactory: { type: String, required: true },
   unitsNumber: { type: Number, required: true },
   unitsCost: { type: Number, required: true },

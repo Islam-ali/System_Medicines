@@ -1,6 +1,7 @@
 const branchStockModel = require("../model/branchStock.model");
 const userModel = require("../../users/model/user.model");
 const StatusSubStock = require("../../../core/enums/StatusSubStock.enum");
+const mongoose = require("mongoose");
 // Get Factory Stock
 exports.getbranchStock = async (req, res) => {
   const userId = req.query.userId;
@@ -8,23 +9,54 @@ exports.getbranchStock = async (req, res) => {
 
   let query = {};
   if (userId) {
-    query["userId"] = userId;
+    query["userId"] = new mongoose.Types.ObjectId(userId);
   }
   if (status) {
     query["status"] = status;
   }
   try {
-    const listOfbranchStock = await branchStockModel
-      .find(query)
-      .populate({
-        path: "userId",
-        model: "users",
-        select: "_roleId",
-      })
-      .populate({
-        path: "stockId",
-        model: "Stock",
-      });
+    const listOfbranchStock = await branchStockModel.aggregate([
+      {
+        $match: query,
+      },
+      {
+        $lookup: {
+          from: "users",
+          localField: "userId",
+          foreignField: "_id",
+          as: "userId",
+        },
+      },
+      { $unwind: "$userId" },
+      {
+        $lookup: {
+          from: "stocks",
+          localField: "stockId",
+          foreignField: "_id",
+          as: "stockId",
+        },
+      },
+      { $unwind: "$stockId" },
+      {
+        $lookup: {
+          from: "ourrequests",
+          localField: "stockId.ourRequestId",
+          foreignField: "_id",
+          as: "ourRequestId",
+        },
+      },
+      { $unwind: "$ourRequestId" },
+      {
+        $lookup: {
+          from: "itemsfactories",
+          localField: "ourRequestId.itemFactoryId",
+          foreignField: "_id",
+          as: "itemFactoryId",
+        },
+      },
+      { $unwind: "$itemFactoryId" },
+    ]);
+
     res.status(200).json({
       statusCode: res.statusCode,
       message: "successfully",

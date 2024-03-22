@@ -2,6 +2,7 @@ const branchStockModel = require("../model/branchStock.model");
 const userModel = require("../../users/model/user.model");
 const StatusSubStock = require("../../../core/enums/StatusSubStock.enum");
 const mongoose = require("mongoose");
+const sale = require("../../sale/model/sale.model");
 // Get Factory Stock
 exports.getbranchStock = async (req, res) => {
   const userId = req.query.userId;
@@ -90,7 +91,9 @@ exports.getAllBranchStock = async (req, res) => {
     return res.status(200).json({
       statusCode: res.statusCode,
       message: "successfully",
-      data: newListOfUsersAndCountOfItems,
+      data: newListOfUsersAndCountOfItems.sort(
+        (a, b) => b.countOfItems - a.countOfItems  
+      ),
     });
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -114,6 +117,29 @@ exports.changeStatusBranchStock = async (req, res) => {
       statusCode: res.statusCode,
       message: "successfully",
       data: objBranchStock,
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+exports.updateBranch = async (req, res) => {
+  try {
+
+    const branchStock = await sale.updateMany(
+      {
+        branchStockId: {
+          $in: ["65f6218448e2bd8d0c3501ff"],
+        },
+        userId: "65eb6af2b43645c652da939a",
+      },
+      { $set: { branchStockId: "65f6242648e2bd8d0c350242" } }
+    );
+
+    return res.status(200).json({
+      statusCode: res.statusCode,
+      message: "successfully",
+      data: branchStock,
     });
   } catch (error) {
     res.status(500).json({ message: error.message });

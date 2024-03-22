@@ -22,11 +22,16 @@ exports.listTypeOfClient = async (req, res, next) => {
 // get All type of Factories
 exports.getAllClient = async (req, res, next) => {
   let query = {};
-    const clientTypeId = req.query.clientTypeId;
-    if (clientTypeId) {
-      query["typeOfClient.id"] = parseInt(clientTypeId);
-    }
-    console.log(query);
+  const clientTypeId = req.query.clientTypeId;
+  const clientId = req.query.clientId;
+  if (clientTypeId) {
+    query["typeOfClient.id"] = parseInt(clientTypeId);
+  }
+  
+  if (clientId) {
+    query["_id"] = parseInt(clientId);
+  }
+
   try {
     const allClient = await clientModel.find(query).populate({
       path: "cityId",
@@ -58,14 +63,14 @@ exports.getClientById = async (req, res, next) => {
         model: "government",
       },
     });
-    const listOfSales = await sale.find({clientId: req.params.id})
+    const listOfSales = await sale.find({ clientId: req.params.id });
 
-    const totalSalesValue = sum(listOfSales.map(sale => sale.salesValue))
+    const totalSalesValue = sum(listOfSales.map((sale) => sale.salesValue));
 
     res.status(200).json({
       statusCode: res.statusCode,
       message: "successfully",
-      data: {...client._doc , totalSalesValue:totalSalesValue},
+      data: { ...client._doc, totalSalesValue: totalSalesValue },
     });
   } catch (error) {
     res
@@ -125,7 +130,7 @@ exports.createClient = async (req, res, next) => {
       ),
       cityId: req.body.cityId,
       owner: req.body.owner,
-phone: req.body.phone,
+      phone: req.body.phone,
     });
     await newClient.save();
     res.status(201).json({
@@ -174,8 +179,8 @@ exports.updateClient = async (req, res, next) => {
         (type) => type.id == req.body.typeOfClient
       )),
       (objClient.cityId = req.body.cityId),
-      objClient.owner = req.body.owner,
-      objClient.phone = req.body.phone,
+      (objClient.owner = req.body.owner),
+      (objClient.phone = req.body.phone),
       await objClient.save();
 
     res.status(201).json({
@@ -201,7 +206,7 @@ exports.deleteClient = async (req, res) => {
       });
     }
     await clientModel.deleteOne(filter).then(async (result) => {
-      await logClientModel.deleteMany({clientId:req.params.id})
+      await logClientModel.deleteMany({ clientId: req.params.id });
     });
     res.status(201).json({
       statusCode: res.statusCode,

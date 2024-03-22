@@ -13,9 +13,9 @@ exports.getStock = async (req, res) => {
   if (req.query.status) {
     query["status"] = req.query.status;
   }
-    if (req.query.orderType) {
-      query["ourRequestId.orderType"] = req.query.orderType;
-    }
+    // if (req.query.orderType) {
+    //   query["ourRequestId.orderType"] = req.query.orderType;
+    // }
   try {
     const listOfStock = await stockModel.aggregate([
       {
@@ -66,7 +66,7 @@ exports.getStock = async (req, res) => {
       },
       {
         $group: {
-          _id: "$itemFactoryId",
+          _id: "$itemFactoryId._id",
           stocks: { $push: "$$ROOT" },
           itemName: { $first: "$itemFactoryId.name" },
           factoryType: { $first: "$typeOfFactoryId.type" },
@@ -345,7 +345,7 @@ exports.transactionToBranchStock = async (req, res) => {
 
     // check exist in branch stock
     let objBranchStock = await branchStockModel.findOne({
-      patchNumber: objStock.patchNumber,
+      stockId: stockId,
       userId: userId,
     });
 
@@ -353,7 +353,7 @@ exports.transactionToBranchStock = async (req, res) => {
       // Update branch stock
       objBranchStock.publicPrice = publicPrice;
       objBranchStock.unitsNumber += unitsNumber;
-      objBranchStock.patchNumber = objStock.patchNumber;
+      // objBranchStock.patchNumber = objStock.patchNumber;
       await objBranchStock.save();
     } else {
       // create new branch stock
@@ -362,7 +362,7 @@ exports.transactionToBranchStock = async (req, res) => {
         userId: userId,
         publicPrice: publicPrice,
         unitsNumber: unitsNumber,
-        patchNumber: objStock.patchNumber,
+        // patchNumber: objStock.patchNumber,
         date: date,
       };
       await branchStockModel.create(objBranchStock);

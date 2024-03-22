@@ -15,7 +15,7 @@ const branchStockSchema = new mongoose.Schema({
   unitsNumber: { type: Number, required: true },
   publicPrice: { type: Number, required: true },
   date: { type: Date, required: true },
-  patchNumber: { type: String, required: true },
+  // patchNumber: { type: String, required: true },
   status: {
     type: String,
     enum: [StatusSubStock.INSTOCK, StatusSubStock.OUTOFSTOCK],

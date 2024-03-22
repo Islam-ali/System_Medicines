@@ -24,4 +24,11 @@ router.put(
   checkPermission("branchStock.read"),
   branchStockService.changeStatusBranchStock
 );
+
+router.put(
+  "/updateBranch",
+  // verifyToken,
+  // checkPermission("branchStock.read"),
+  branchStockService.updateBranch
+);
 module.exports = router;

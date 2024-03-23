@@ -13,9 +13,9 @@ exports.getStock = async (req, res) => {
   if (req.query.status) {
     query["status"] = req.query.status;
   }
-    // if (req.query.orderType) {
-    //   query["ourRequestId.orderType"] = req.query.orderType;
-    // }
+    if (req.query.orderType) {
+      query["ourRequestId.orderType"] = req.query.orderType;
+    }
   try {
     const listOfStock = await stockModel.aggregate([
       {

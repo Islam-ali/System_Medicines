@@ -436,8 +436,8 @@ exports.deleteSale = async (req, res) => {
       paymentSaleModel.deleteMany({ saleId: objSale._id }),
     ]).then(async (result) => {
       const objLogClient = {
-        clientId: result[0].clientId,
-        saleId: result[0]._id,
+        clientId: CopyObjSale.clientId,
+        saleId: CopyObjSale._id,
         creationBy: req.userId,
         beforUpdateSale: CopyObjSale,
         afterUpdateSale: null,

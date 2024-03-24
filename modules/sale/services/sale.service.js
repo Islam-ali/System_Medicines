@@ -404,7 +404,6 @@ exports.deleteSale = async (req, res) => {
       });
     }
     const CopyObjSale = JSON.parse(JSON.stringify(objSale));
-
     const userId = objSale.branchStockId.userId._id;
     const objBranchStock = await branchStockModel
       .findOne({
@@ -436,7 +435,7 @@ exports.deleteSale = async (req, res) => {
       paymentSaleModel.deleteMany({ saleId: objSale._id }),
     ]).then(async (result) => {
       const objLogClient = {
-        clientId: CopyObjSale.clientId,
+        clientId: CopyObjSale.clientId._id,
         saleId: CopyObjSale._id,
         creationBy: req.userId,
         beforUpdateSale: CopyObjSale,

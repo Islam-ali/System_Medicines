@@ -259,7 +259,7 @@ exports.getAllPaymentForFactories = async (req, res) => {
       $expr: {
         $and: [
           { $eq: [{ $year: "$cashDate" }, year] },
-          { $eq: [{ $month: "$cashDate" }, month] },
+          // { $eq: [{ $month: "$cashDate" }, month] },
         ],
       },
     };

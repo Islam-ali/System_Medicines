@@ -13,9 +13,9 @@ exports.getStock = async (req, res) => {
   if (req.query.status) {
     query["status"] = req.query.status;
   }
-    if (req.query.orderType) {
-      query["ourRequestId.orderType"] = req.query.orderType;
-    }
+  if (req.query.orderType) {
+    query["ourRequestId.orderType"] = req.query.orderType;
+  }
   try {
     const listOfStock = await stockModel.aggregate([
       {
@@ -94,7 +94,12 @@ exports.getStockByClassificationId = async (req, res) => {
     if (factoryId) {
       query["factoryId._id"] = new mongoose.Types.ObjectId(factoryId);
     }
-
+    if (req.query.status) {
+      query["status"] = req.query.status;
+    }
+    if (req.query.orderType) {
+      query["ourRequestId.orderType"] = req.query.orderType;
+    }
     const listOfStock = await stockModel.aggregate([
       {
         $lookup: {
@@ -236,9 +241,9 @@ exports.getStockById = async (req, res) => {
   }
 };
 
-exports.updateInfoInStock = async (req, res) => {
-  const { patchNumber, manfDate, expDate } = req.body;
-  if (!patchNumber || !manfDate || !expDate) {
+exports.updatePublicPriceInStock = async (req, res) => {
+  const { publicPrice } = req.body;
+  if (!publicPrice) {
     return res.status(400).json({ message: "invalid Data" });
   }
   try {
@@ -247,9 +252,7 @@ exports.updateInfoInStock = async (req, res) => {
       return res.status(404).json({ message: "Stock not found" });
     }
 
-    objStock.patchNumber = patchNumber;
-    objStock.manfDate = manfDate;
-    objStock.expDate = expDate;
+    objStock.publicPrice = publicPrice;
 
     await objStock.save();
     res.status(201).json({
@@ -330,8 +333,8 @@ exports.returnOurRequest = async (req, res) => {
 };
 
 exports.transactionToBranchStock = async (req, res) => {
-  const { stockId, unitsNumber, userId, date, publicPrice } = req.body;
-  if (!stockId || !unitsNumber || !userId || !date || !publicPrice) {
+  const { stockId, unitsNumber, userId, date } = req.body;
+  if (!stockId || !unitsNumber || !userId || !date) {
     return res.status(400).json({ message: "invalid Data" });
   }
   try {
@@ -351,7 +354,7 @@ exports.transactionToBranchStock = async (req, res) => {
 
     if (objBranchStock) {
       // Update branch stock
-      objBranchStock.publicPrice = publicPrice;
+      objBranchStock.publicPrice = objStock.publicPrice;
       objBranchStock.unitsNumber += unitsNumber;
       // objBranchStock.patchNumber = objStock.patchNumber;
       await objBranchStock.save();
@@ -360,7 +363,7 @@ exports.transactionToBranchStock = async (req, res) => {
       objBranchStock = {
         stockId: stockId,
         userId: userId,
-        publicPrice: publicPrice,
+        publicPrice: objStock.publicPrice,
         unitsNumber: unitsNumber,
         // patchNumber: objStock.patchNumber,
         date: date,
@@ -379,8 +382,8 @@ exports.transactionToBranchStock = async (req, res) => {
       stockId: objStock._id,
       userId: userId,
       unitsNumber: unitsNumber,
-      publicPrice: publicPrice,
-      totalcost: unitsNumber * publicPrice,
+      publicPrice: objStock.publicPrice,
+      totalcost: unitsNumber * objStock.publicPrice,
       insertDate: date,
     });
     await objLogTransfer.save();
@@ -431,9 +434,8 @@ exports.transactionFromBranchStockToStock = async (req, res) => {
           stockId: objStock._id,
           userId: objBranchStockModel.userId,
           unitsNumber: objBranchStockModel.unitsNumber,
-          publicPrice: objBranchStockModel.publicPrice,
-          totalcost:
-            objBranchStockModel.unitsNumber * objBranchStockModel.publicPrice,
+          publicPrice: objStock.publicPrice,
+          totalcost: objBranchStockModel.unitsNumber * objStock.publicPrice,
           insertDate: new Date(),
         });
         await objLogTransfer.save();
@@ -455,17 +457,20 @@ exports.getTotalAmountInStock = async (req, res) => {
 
     const totalAmountRowMaterials = listOfStock.reduce((sum, item) => {
       if (item.classificationId === 1) {
-        return sum + item.totalcost;
+        return sum + item.unitsNumber * item.publicPrice;
       }
       return sum;
     }, 0);
     const totalAmountManufacturing = listOfStock.reduce((sum, item) => {
       if (item.classificationId === 2) {
-        return sum + item.totalcost;
+        return sum + item.unitsNumber * item.publicPrice;
       }
       return sum;
     }, 0);
-    const totalAmount = sum(listOfStock.map((stock) => stock.totalcost));
+    const totalAmount = listOfStock.reduce((sum, item) => {
+      return sum + item.unitsNumber * item.publicPrice;
+      return sum;
+    }, 0);
 
     res.status(200).json({
       statusCode: res.statusCode,
@@ -504,7 +509,6 @@ exports.changeStatusStock = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
-
 
 exports.getLogTransfer = async (req, res) => {
   try {
@@ -557,7 +561,7 @@ exports.getLogTransfer = async (req, res) => {
     res.status(200).json({
       statusCode: res.statusCode,
       message: "successfully",
-      data: listOfLogTransfer,
+      data: listOfLogTransfer.reverse(),
     });
   } catch (error) {
     res.status(500).json({ message: error.message });

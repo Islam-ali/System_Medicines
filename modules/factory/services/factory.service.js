@@ -3,6 +3,8 @@ const itemsFactoryModel = require("../../itemsFactory/model/itemsFactory.model")
 const typeOfFactoryModel = require("../../typeOfFactory/model/typeOfFactory.model");
 const convertArray = require("../../../core/shared/errorForm");
 const { validationResult } = require("express-validator");
+const ourRequest = require("../../ourRequest/model/ourRequest.model");
+const { sum } = require("lodash");
 
 // Create a new factory
 exports.createFactory = async (req, res) => {
@@ -65,10 +67,15 @@ exports.getFactoryById = async (req, res) => {
     if (!factory) {
       return res.status(404).json({ message: "Factory not found" });
     }
+
+    const listOfOurRequests = await ourRequest.find({ factoryId : factory._id});
+    const totalOurRequest = sum(
+      listOfOurRequests.map((ourRequest) => ourRequest.totalcost)
+    );
     res.status(200).json({
       statusCode: res.statusCode,
       message: "successfully",
-      data: factory,
+      data: { ...factory._doc, totalOurRequest: totalOurRequest },
     });
   } catch (error) {
     res.status(500).json({ message: error.message });

@@ -18,9 +18,7 @@ const stockSchema = new mongoose.Schema({
   unitsNumber: { type: Number, required: true },
   unitsCost: { type: Number, required: true },
   totalcost: { type: Number, required: true },
-  patchNumber: { type: String },
-  manfDate: { type: Date },
-  expDate: { type: Date },
+  publicPrice: { type: Number, default:0 },
   status: {
     type: String,
     enum: [StatusSubStock.INSTOCK, StatusSubStock.OUTOFSTOCK],

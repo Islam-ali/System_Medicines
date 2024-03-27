@@ -57,6 +57,15 @@ exports.getAllSales = async (req, res, next) => {
       { $unwind: "$branchStockId.stockId" },
       {
         $lookup: {
+          from: "itemsfactories",
+          localField: "branchStockId.stockId.itemFactoryId",
+          foreignField: "_id",
+          as: "branchStockId.stockId.itemFactoryId",
+        },
+      },
+      { $unwind: "$branchStockId.stockId.itemFactoryId" },
+      {
+        $lookup: {
           from: "users",
           localField: "userId",
           foreignField: "_id",

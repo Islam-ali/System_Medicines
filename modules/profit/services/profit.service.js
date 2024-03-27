@@ -1,10 +1,9 @@
 const { sum } = require("lodash");
-const PaymentForFactoryModel = require("../../PaymentForFactories/model/paymentForFactories.model");
-const paymentSaleModel = require("../../paymentSale/model/paymentSale.model");
 const expencesModel = require("../../expences/model/expences.model");
 const paymentClientModel = require("../../paymentClient/model/paymentClient.model");
-const sale = require("../../sale/model/sale.model");
+const saleModel = require("../../sale/model/sale.model");
 const UserRole = require("../../../core/enums/role.enum");
+const mongoose = require("mongoose");
 
 exports.getAllIncomes = async (req, res, next) => {
   try {
@@ -794,6 +793,136 @@ exports.getStatisticsAccountGroupbyYear = async (req, res, next) => {
         totalIncomes: totalIncomes,
         totalExpences: totalExpences,
       },
+    });
+  } catch (error) {
+    res
+      .status(500)
+      .json({ statusCode: res.statusCode, message: error.message });
+  }
+};
+
+exports.getReportSales = async (req, res, next) => {
+  try {
+    let query = {};
+    const clientId = req.query.clientId;
+    const userId = req.query.userId;
+    // const isAllow = req.roleName == UserRole.ADMIN;
+    const fromDate = req.query.fromDate; // Assuming fromDate is provided in the request query
+    const toDate = req.query.toDate; // Assuming toDate is provided in the request query
+
+    if (userId) {
+      query["userId"] = new mongoose.Types.ObjectId(userId);
+    }
+    if (clientId) {
+      query["clientId"] = new mongoose.Types.ObjectId(clientId);
+    }
+
+    if (fromDate && toDate) {
+      query.date = {
+        $gte: new Date(fromDate),
+        $lte: new Date(toDate),
+      };
+    }
+    const allSale = await saleModel.aggregate([
+      // {
+      //   $match: query,
+      // },
+      {
+        $lookup: {
+          from: "branchstocks",
+          localField: "branchStockId",
+          foreignField: "_id",
+          as: "branchStockId", // This is the additional lookup
+        },
+      },
+      { $unwind: "$branchStockId" }, // Unwind the new field
+      {
+        $lookup: {
+          from: "stocks",
+          localField: "branchStockId.stockId",
+          foreignField: "_id",
+          as: "stockId",
+        },
+      },
+      { $unwind: "$stockId" },
+      {
+        $lookup: {
+          from: "ourrequests",
+          localField: "stockId.ourRequestId",
+          foreignField: "_id",
+          as: "ourRequestId",
+        },
+      },
+      { $unwind: "$ourRequestId" },
+      {
+        $lookup: {
+          from: "factories",
+          localField: "ourRequestId.factoryId",
+          foreignField: "_id",
+          as: "factoryId",
+        },
+      },
+      { $unwind: "$factoryId" },
+      {
+        $lookup: {
+          from: "typeoffactories",
+          localField: "factoryId.typeOfFactoryId",
+          foreignField: "_id",
+          as: "typeOfFactoryId",
+        },
+      },
+      { $unwind: "$typeOfFactoryId" },
+      {
+        $lookup: {
+          from: "itemsfactories",
+          localField: "stockId.itemFactoryId",
+          foreignField: "_id",
+          as: "itemFactoryId",
+        },
+      },
+      { $unwind: "$itemFactoryId" },
+      {
+        $lookup: {
+          from: "users",
+          localField: "userId",
+          foreignField: "_id",
+          as: "userId",
+        },
+      },
+      { $unwind: "$userId" },
+      {
+        $lookup: {
+          from: "clients",
+          localField: "clientId",
+          foreignField: "_id",
+          as: "clientId",
+        },
+      },
+      { $unwind: "$clientId" },
+      {
+        $group: {
+          _id: "$itemFactoryId._id",
+          sales: { $push: "$$ROOT" },
+          itemName: { $first: "$itemFactoryId.name" },
+          factoryType: { $first: "$typeOfFactoryId.type" },
+          factoryName: { $first: "$factoryId.name" },
+          totalSalesValue: { $sum: "$salesValue" },
+          totalsalesQuantity: { $sum: "$salesQuantity" },
+          totalUnitsCost: { $first: "$ourRequestId.unitsCost" },
+        },
+      },
+      {
+        $addFields: {
+          totalNetProfit: {
+            $subtract: ["$totalSalesValue", "$totalUnitsCost"],
+          },
+        },
+      },
+    ]);
+    res.status(200).json({
+      statusCode: res.statusCode,
+      message: "successfully",
+      data: allSale.reverse(),
     });
   } catch (error) {
     res

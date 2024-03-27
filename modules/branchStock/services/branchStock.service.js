@@ -10,16 +10,19 @@ exports.getbranchStock = async (req, res) => {
 
   let query = {};
   if (userId) {
-    query["userId"] = new mongoose.Types.ObjectId(userId);
+    query["userId._id"] = new mongoose.Types.ObjectId(userId);
   }
   if (status) {
     query["status"] = status;
   }
+  if (req.query.orderType) {
+    query["ourRequestId.orderType"] = req.query.orderType;
+  }
   try {
     const listOfbranchStock = await branchStockModel.aggregate([
-      {
-        $match: query,
-      },
+      // {
+      //   $match: query,
+      // },
       {
         $lookup: {
           from: "users",
@@ -47,6 +50,9 @@ exports.getbranchStock = async (req, res) => {
         },
       },
       { $unwind: "$ourRequestId" },
+      {
+        $match: query,
+      },
       {
         $lookup: {
           from: "itemsfactories",
@@ -92,7 +98,7 @@ exports.getAllBranchStock = async (req, res) => {
       statusCode: res.statusCode,
       message: "successfully",
       data: newListOfUsersAndCountOfItems.sort(
-        (a, b) => b.countOfItems - a.countOfItems  
+        (a, b) => b.countOfItems - a.countOfItems
       ),
     });
   } catch (error) {
@@ -125,7 +131,6 @@ exports.changeStatusBranchStock = async (req, res) => {
 
 exports.updateBranch = async (req, res) => {
   try {
-
     const branchStock = await sale.updateMany(
       {
         branchStockId: {

@@ -27,10 +27,10 @@ router.get(
 );
 
 router.put(
-  "/updateInfoInStock/:id",
+  "/updatePublicPriceInStock/:id",
   verifyToken,
   checkPermission("stock.update"),
-  stockService.updateInfoInStock
+  stockService.updatePublicPriceInStock
 );
 
 

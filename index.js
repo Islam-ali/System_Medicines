@@ -148,6 +148,7 @@ app.use(
   "/treasur",
   require("./modules/treasur/routes/treasur.route.js")
 );
+app.use("/note", require("./modules/note/routes/note.route.js"));
 
 
 

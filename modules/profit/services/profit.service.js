@@ -819,15 +819,15 @@ exports.getReportSales = async (req, res, next) => {
     }
 
     if (fromDate && toDate) {
-      query.date = {
+      query["date"] = {
         $gte: new Date(fromDate),
         $lte: new Date(toDate),
       };
     }
     const allSale = await saleModel.aggregate([
-      // {
-      //   $match: query,
-      // },
+      {
+        $match: query,
+      },
       {
         $lookup: {
           from: "branchstocks",
@@ -945,27 +945,22 @@ exports.getReportItemSales = async (req, res, next) => {
     let query = {};
     const clientId = req.query.clientId;
     const userId = req.query.userId;
-    // const isAllow = req.roleName == UserRole.ADMIN;
-    const fromDate = req.query.fromDate; // Assuming fromDate is provided in the request query
-    const toDate = req.query.toDate; // Assuming toDate is provided in the request query
-
+    const fromDate = req.query.fromDate;
+    const toDate = req.query.toDate;
     if (userId) {
-      query["userId"] = new mongoose.Types.ObjectId(userId);
+      query["userId._id"] = new mongoose.Types.ObjectId(userId);
     }
     if (clientId) {
-      query["clientId"] = new mongoose.Types.ObjectId(clientId);
+      query["clientId._id"] = new mongoose.Types.ObjectId(clientId);
     }
 
     if (fromDate && toDate) {
-      query.date = {
+      query["date"] = {
         $gte: new Date(fromDate),
         $lte: new Date(toDate),
       };
     }
     const allSale = await saleModel.aggregate([
-      // {
-      //   $match: query,
-      // },
       {
         $lookup: {
           from: "branchstocks",
@@ -1039,6 +1034,9 @@ exports.getReportItemSales = async (req, res, next) => {
       },
       { $unwind: "$clientId" },
       {
+        $match: query,
+      },
+      {
         $group: {
           _id: "$itemFactoryId._id",
           // sales: { $push: "$$ROOT" },
@@ -1049,7 +1047,7 @@ exports.getReportItemSales = async (req, res, next) => {
           // patchNumber: { $first: "$ourRequestId.patchNumber" },
           totalsalesQuantity: { $sum: "$salesQuantity" },
         },
-      }
+      },
     ]);
     res.status(200).json({
       statusCode: res.statusCode,

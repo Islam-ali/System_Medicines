@@ -717,6 +717,7 @@ exports.getStatisticsAccountGroupbyYear = async (req, res, next) => {
       },
     ]);
     const totalIncomes = sum(allIncomes.map((income) => income.totalRecived));
+
     const matchQueryExpences = {
       $expr: {
         $and: [{ $eq: [{ $year: "$cashDate" }, year] }],
@@ -761,7 +762,7 @@ exports.getStatisticsAccountGroupbyYear = async (req, res, next) => {
       },
     ]);
     const totalExpences = sum(
-      allExpences.map((expences) => expences.totalAmount)
+      allExpences.map((expences) => expences.totalExpences)
     );
 
     months.forEach((ele) => {

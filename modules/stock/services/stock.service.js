@@ -343,9 +343,14 @@ exports.transactionToBranchStock = async (req, res) => {
     if (!objStock) {
       return res.status(404).json({ message: "Stock not found" });
     }
-    if (objStock.unitsNumber < unitsNumber) {
-      return res.status(400).json({ message: "units number more than stock" });
+    if (!objStock?.publicPrice){
+      return res.status(404).json({ message: "Must be Add public price " });
     }
+    if (objStock.unitsNumber < unitsNumber) {
+        return res
+          .status(400)
+          .json({ message: "units number more than stock" });
+      }
 
     // check exist in branch stock
     let objBranchStock = await branchStockModel.findOne({

@@ -8,20 +8,29 @@ const typeLogClientEnum = require("../../../core/enums/typeLogClient.enum");
 const mongoose = require("mongoose");
 const { clientModel } = require("../../client/model/client.model");
 const treasurAmount = require("../../treasur/model/treasurAmount.model");
+const { sum } = require("lodash");
 
 // get All type of Factories
 exports.getAllPaymentClient = async (req, res, next) => {
   const userId = req.userId;
   const clientId = req.query.clientId;
   const isAllow = req.roleName == UserRole.ADMIN;
+  const fromDate = req.query.fromDate;
+  const toDate = req.query.toDate;
   let query = {};
   let matchSale = {};
-  if (!isAllow) {
-    query["recipientId"] = new mongoose.Types.ObjectId(userId);
+  // if (!isAllow) {
+  //   query["recipientId"] = new mongoose.Types.ObjectId(userId);
+  // }
+  if (fromDate && toDate) {
+    query.date = {
+      $gte: new Date(fromDate),
+      $lte: new Date(toDate),
+    };
   }
-  clientId
-    ? (matchSale["clientId"] = new mongoose.Types.ObjectId(clientId))
-    : null;
+  if (clientId) {
+    matchSale["clientId._id"] = new mongoose.Types.ObjectId(clientId);
+  }
   try {
     const allPaymentClient = await paymentClientModel.aggregate([
       {
@@ -46,10 +55,12 @@ exports.getAllPaymentClient = async (req, res, next) => {
         $match: { $and: [matchSale, query] },
       },
     ]);
+
+    const totalWasPaid = sum(allPaymentClient.map((payment) => payment.amount));;
     res.status(200).json({
       statusCode: res.statusCode,
       message: "successfully",
-      data: allPaymentClient,
+      data: { allpayment: allPaymentClient.reverse(), totalWasPaid: totalWasPaid },
     });
   } catch (error) {
     res
@@ -88,7 +99,7 @@ exports.createPaymentClient = async (req, res, next) => {
   let session = await mongoose.startSession();
   session.startTransaction();
   const body = req.body;
-  const userId = !body.userId ? req.userId : body.userId;
+  const userId = !body.recipientId ? req.userId : body.recipientId;
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     const convArray = new convertArray(errors.array());

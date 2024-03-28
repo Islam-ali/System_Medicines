@@ -5,6 +5,7 @@ const convertArray = require("../../../core/shared/errorForm");
 const { validationResult } = require("express-validator");
 const ourRequest = require("../../ourRequest/model/ourRequest.model");
 const { sum } = require("lodash");
+const PaymentForFactory = require("../../PaymentForFactories/model/paymentForFactories.model");
 
 // Create a new factory
 exports.createFactory = async (req, res) => {
@@ -68,14 +69,25 @@ exports.getFactoryById = async (req, res) => {
       return res.status(404).json({ message: "Factory not found" });
     }
 
-    const listOfOurRequests = await ourRequest.find({ factoryId : factory._id});
+    const listOfOurRequests = await ourRequest.find({ factoryId: factory._id });
     const totalOurRequest = sum(
       listOfOurRequests.map((ourRequest) => ourRequest.totalcost)
+    );
+
+    const listOfPayment = await PaymentForFactory.find({
+      factoryId: factory._id,
+    });
+    const totalWasPaid = sum(
+      listOfPayment.map((payment) => payment.cashAmount)
     );
     res.status(200).json({
       statusCode: res.statusCode,
       message: "successfully",
-      data: { ...factory._doc, totalOurRequest: totalOurRequest },
+      data: {
+        ...factory._doc,
+        totalOurRequest: totalOurRequest,
+        totalWasPaid: totalWasPaid,
+      },
     });
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -122,13 +134,11 @@ exports.getFactoriesByClassificationId = async (req, res) => {
     });
 
     if (!listOfFactoy) {
-      return res
-        .status(404)
-        .json({
-          statusCode: res.statusCode,
-          message: "Item not found",
-          data: [],
-        });
+      return res.status(404).json({
+        statusCode: res.statusCode,
+        message: "Item not found",
+        data: [],
+      });
     }
     res.status(200).json({
       statusCode: res.statusCode,

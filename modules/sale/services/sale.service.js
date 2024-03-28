@@ -17,9 +17,8 @@ exports.getAllSales = async (req, res, next) => {
     const clientId = req.query.clientId;
     const userId = req.userId;
     const isAllow = req.roleName == UserRole.ADMIN;
-    const fromDate = req.query.fromDate; // Assuming fromDate is provided in the request query
-    const toDate = req.query.toDate; // Assuming toDate is provided in the request query
-
+    const fromDate = req.query.fromDate;
+    const toDate = req.query.toDate; 
     if (!isAllow) {
       query["userId"] = new mongoose.Types.ObjectId(userId);
     }

@@ -43,4 +43,7 @@ router.get(
 
 router.get("/getReportSales", verifyToken, profitService.getReportSales);
 
+router.get("/getReportItemSales", verifyToken, profitService.getReportItemSales);
+
+
 module.exports = router;

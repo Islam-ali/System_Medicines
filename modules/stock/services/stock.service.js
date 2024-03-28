@@ -71,6 +71,7 @@ exports.getStock = async (req, res) => {
           itemName: { $first: "$itemFactoryId.name" },
           factoryType: { $first: "$typeOfFactoryId.type" },
           totalcost: { $sum: "$totalcost" },
+          totalPublicPrice: { $sum: "$publicPrice" },
           totalUnitsNumber: { $sum: "$unitsNumber" },
           totalUnitsCost: { $sum: "$unitsCost" },
         },

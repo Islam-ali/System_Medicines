@@ -150,8 +150,15 @@ app.use(
 );
 app.use("/note", require("./modules/note/routes/note.route.js"));
 app.use("/paymentPrivate", require("./modules/paymentPrivate/routes/paymentPrivate.route.js"));
+app.use(
+  "/requestPrivate",
+  require("./modules/requestPrivate/routes/requestPrivate.route.js")
+);
 
-
+app.use(
+  "/authPrivate",
+  require("./modules/authPrivate/routes/authPrivate.route.js")
+);
 
 
 // test afaq

@@ -1,16 +1,11 @@
-const PaymentPrivate = require("../model/paymentPrivate.model");
 const convertArray = require("../../../core/shared/errorForm");
 const { validationResult } = require("express-validator");
 const mongoose = require("mongoose");
-const expencesModel = require("../../expences/model/expences.model");
-const { sum } = require("lodash");
-const Factory = require("../../factory/model/factory.model");
-const treasurAmount = require("../../treasur/model/treasurAmount.model");
-const PaymentPrivateModel = require("../model/paymentPrivate.model");
+const RequestPrivateModel = require("../model/requestPrivate.model");
 
 
-// Create a new PaymentPrivate
-exports.createPaymentPrivate = async (req, res) => {
+// Create a new RequestPrivate
+exports.createRequestPrivate = async (req, res) => {
   let session = await mongoose.startSession();
   session.startTransaction();
 
@@ -26,7 +21,7 @@ exports.createPaymentPrivate = async (req, res) => {
   }
   try {
 
-    await PaymentPrivateModel.create(body);
+    await RequestPrivateModel.create(body);
  
     await session.commitTransaction();
     session.endSession();
@@ -43,16 +38,14 @@ exports.createPaymentPrivate = async (req, res) => {
 };
 
 // get All Payment For Factories
-exports.getAllPaymentPrivate = async (req, res) => {
+exports.getAllRequestPrivate = async (req, res) => {
   try {
-    const PaymentPrivate = await PaymentPrivateModel.find();
-    const totalPaymentPrivate = sum(PaymentPrivate.map((x)=> x.amount))
+    const RequestPrivate = await RequestPrivateModel.find();
     res.status(200).json({
       statusCode: res.statusCode,
       message: "successfully",
       data: {
-        totalPaymentPrivate: totalPaymentPrivate,
-        listOfPaymentPrivate: PaymentPrivate.reverse(),
+        listOfRequestPrivate: RequestPrivate.reverse(),
       },
     });
   } catch (error) {
@@ -62,7 +55,7 @@ exports.getAllPaymentPrivate = async (req, res) => {
 
 
 // Update a factory by ID
-exports.updatePaymentPrivate = async (req, res) => {
+exports.updateRequestPrivate = async (req, res) => {
   let session = await mongoose.startSession();
   session.startTransaction();
   const errors = validationResult(req);
@@ -75,23 +68,22 @@ exports.updatePaymentPrivate = async (req, res) => {
     });
   }
   try {
-    const objPaymentPrivate = await PaymentPrivateModel.findOne({
+    const objRequestPrivate = await RequestPrivateModel.findOne({
       _id: req.params.id,
     });
 
-    if (!objPaymentPrivate) {
+    if (!objRequestPrivate) {
       return res.status(400).json({
         statusCode: res.statusCode,
         message: "not exist Payment",
       });
     }
 
-    objPaymentPrivate.title = req.body.title;
-    objPaymentPrivate.amount = req.body.amount;
-    objPaymentPrivate.date = req.body.date;
-    objPaymentPrivate.note = req.body.note;
+    objRequestPrivate.request = req.body.request;
+    objRequestPrivate.date = req.body.date;
+    objRequestPrivate.note = req.body.note;
 
-    await objPaymentPrivate.save()
+    await objRequestPrivate.save()
 
     await session.commitTransaction();
     session.endSession();
@@ -108,22 +100,22 @@ exports.updatePaymentPrivate = async (req, res) => {
 };
 
 // Delete a factory by ID
-exports.deletePaymentPrivate = async (req, res) => {
+exports.deleteRequestPrivate = async (req, res) => {
   let session = await mongoose.startSession();
   session.startTransaction();
   try {
-    const filterPaymentPrivateId = { _id: req.params.id };
-    const objPaymentPrivate = await PaymentPrivate.findOne(
-      filterPaymentPrivateId
-    )
-    if (!objPaymentPrivate) {
+    const filterRequestPrivateId = { _id: req.params.id };
+    const objRequestPrivate = await RequestPrivateModel.findOne(
+      filterRequestPrivateId
+    );
+    if (!objRequestPrivate) {
       return res.status(404).json({
         statusCode: res.statusCode,
         message: "Not Found payment",
       });
     }
 
-    await PaymentPrivate.deleteOne(filterPaymentPrivateId);
+    await RequestPrivateModel.deleteOne(filterRequestPrivateId);
 
     await session.commitTransaction();
     session.endSession();

@@ -275,6 +275,21 @@ exports.getAllPaymentForFactories = async (req, res) => {
       },
       {
         $lookup: {
+          from: "itemsfactories",
+          let: { itemFactoryId: "$itemFactoryId" },
+          pipeline: [
+            {
+              $match: {
+                $expr: { $eq: ["$_id", "$$itemFactoryId"] },
+              },
+            },
+          ],
+          as: "itemFactoryId",
+        },
+      },
+      { $unwind: { path: "$itemFactoryId", preserveNullAndEmptyArrays: true } },
+      {
+        $lookup: {
           from: "factories",
           localField: "factoryId",
           foreignField: "_id",
@@ -447,7 +462,7 @@ exports.updatePaymentForFactory = async (req, res) => {
     const objPaymentFactory = await PaymentForFactory.findOne({
       _id: req.params.id,
     });
-    const { factoryId, cashAmount, cashDate, note } = req.body;
+    const { factoryId, cashAmount, cashDate, note , itemFactoryId,patchNumber } = req.body;
     const objFactory = await Factory.findOne({
       _id: objPaymentFactory.factoryId,
     });
@@ -466,6 +481,8 @@ exports.updatePaymentForFactory = async (req, res) => {
     objPaymentFactory.factoryId = factoryId;
     objPaymentFactory.cashDate = cashDate;
     objPaymentFactory.note = note;
+    objPaymentFactory["itemFactoryId"] = itemFactoryId;
+    objPaymentFactory["patchNumber"] = patchNumber;
 
     // let newPaymentForFactoryId;
     await objPaymentFactory.save().then(async (result) => {

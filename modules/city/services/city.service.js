@@ -1,6 +1,7 @@
 const cityModel = require("../model/city.model");
 const { validationResult } = require("express-validator");
 const convertArray = require("../../../core/shared/errorForm");
+const { clientModel } = require("../../client/model/client.model");
 
 // get All type of Factories
 exports.getAllCity = async (req, res, next) => {
@@ -129,6 +130,13 @@ exports.deleteCity = async (req, res) => {
       return res.status(404).json({
         statusCode: res.statusCode,
         message: "Not Found City",
+      });
+    }
+    const objClientModel = clientModel.findOne({ cityId: req.params.id });
+    if (objClientModel) {
+      return res.status(404).json({
+        statusCode: res.statusCode,
+        message: "can't deleted City",
       });
     }
     await cityModel.deleteOne(filter);

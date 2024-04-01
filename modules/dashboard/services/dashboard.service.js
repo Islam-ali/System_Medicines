@@ -5,7 +5,8 @@ const paymentClientModel = require("../../paymentClient/model/paymentClient.mode
 
 exports.getStatsticsAcountInYear = async (req, res, next) => {
   try {
-    const year = new Date().getFullYear();
+    const queryDate = req.query.date;
+    const year = new Date(queryDate).getFullYear();
     const matchQueryIncome = {
       $expr: {
         $and: [{ $eq: [{ $year: "$date" }, year] }],

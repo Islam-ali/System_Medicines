@@ -5,6 +5,12 @@ const paymentForFactorySchema = new mongoose.Schema({
     ref: "Factory",
     required: true,
   },
+  itemFactoryId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "ItemsFactory",
+    default: null
+  },
+  patchNumber: { type: Number , default:0},
   wayOfPaymentId: { type: Number },
   cashAmount: { type: Number, required: true },
   cashDate: { type: Date, required: true },

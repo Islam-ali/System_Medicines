@@ -16,6 +16,14 @@ router.post(
   authPrivateService.login
 );
 
+// Create a new factory
+router.put(
+  "/updatePasswordPrivate",
+  verifyToken,
+  checkPermission("ourRequest.create"),
+  validateauthPrivate,
+  authPrivateService.updatePasswordPrivate
+);
 
 
 module.exports = router;

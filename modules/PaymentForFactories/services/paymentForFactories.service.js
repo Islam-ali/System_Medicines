@@ -275,19 +275,33 @@ exports.getAllPaymentForFactories = async (req, res) => {
       },
       {
         $lookup: {
-          from: "itemsfactories",
-          let: { itemFactoryId: "$itemFactoryId" },
+          from: "ourrequests",
+          let: { ourRequestId: "$ourRequestId" },
           pipeline: [
             {
               $match: {
-                $expr: { $eq: ["$_id", "$$itemFactoryId"] },
+                $expr: { $eq: ["$_id", "$$ourRequestId"] },
               },
             },
           ],
+          as: "ourRequestId",
+        },
+      },
+      { $unwind: { path: "$ourRequestId", preserveNullAndEmptyArrays: true } },
+      {
+        $unwind: {
+          path: "$itemFactoryId",
+          preserveNullAndEmptyArrays: true,
+        },
+      }, // Unwind to access itemFactoryId
+      {
+        $lookup: {
+          from: "itemsfactories",
+          localField: "ourRequestId.itemFactoryId",
+          foreignField: "_id",
           as: "itemFactoryId",
         },
       },
-      { $unwind: { path: "$itemFactoryId", preserveNullAndEmptyArrays: true } },
       {
         $lookup: {
           from: "factories",
@@ -462,7 +476,8 @@ exports.updatePaymentForFactory = async (req, res) => {
     const objPaymentFactory = await PaymentForFactory.findOne({
       _id: req.params.id,
     });
-    const { factoryId, cashAmount, cashDate, note , itemFactoryId,patchNumber } = req.body;
+    const { factoryId, cashAmount, cashDate, note, ourRequestId } =
+      req.body;
     const objFactory = await Factory.findOne({
       _id: objPaymentFactory.factoryId,
     });
@@ -481,8 +496,7 @@ exports.updatePaymentForFactory = async (req, res) => {
     objPaymentFactory.factoryId = factoryId;
     objPaymentFactory.cashDate = cashDate;
     objPaymentFactory.note = note;
-    objPaymentFactory["itemFactoryId"] = itemFactoryId;
-    objPaymentFactory["patchNumber"] = patchNumber;
+    objPaymentFactory["ourRequestId"] = ourRequestId;
 
     // let newPaymentForFactoryId;
     await objPaymentFactory.save().then(async (result) => {

@@ -33,3 +33,29 @@ exports.login = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+
+exports.updatePasswordPrivate = async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    const convArray = new convertArray(errors.array());
+    return res.status(400).json({
+      statusCode: res.statusCode,
+      message: "invalid Error",
+      errors: convArray.errorForm(),
+    });
+  }
+  try {
+    const { password } = req.body;
+    const objAuthPrivate = await authPrivateModel.findOne({
+      id: 1,
+    });
+    objAuthPrivate.password = password;
+    objAuthPrivate.save();
+    return res.status(201).json({
+      statusCode: res.statusCode,
+      message: "Update Private successfully",
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};

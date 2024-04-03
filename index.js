@@ -154,6 +154,10 @@ app.use(
   "/requestPrivate",
   require("./modules/requestPrivate/routes/requestPrivate.route.js")
 );
+app.use(
+  "/debtorPrivate",
+  require("./modules/debtorPrivate/routes/debtorPrivate.route.js")
+);
 
 app.use(
   "/authPrivate",

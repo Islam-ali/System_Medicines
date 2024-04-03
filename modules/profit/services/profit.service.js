@@ -773,7 +773,7 @@ exports.getStatisticsAccountGroupbyYear = async (req, res, next) => {
           totalPayments: 0,
           totalSalaries: 0,
           totalServices: 0,
-          totalOtherExpences:0,
+          totalOtherExpences: 0,
           count: 0,
         });
       }
@@ -809,14 +809,22 @@ exports.getReportSales = async (req, res, next) => {
     const clientId = req.query.clientId;
     const userId = req.query.userId;
     // const isAllow = req.roleName == UserRole.ADMIN;
-    const fromDate = req.query.fromDate; // Assuming fromDate is provided in the request query
-    const toDate = req.query.toDate; // Assuming toDate is provided in the request query
+    const fromDate = req.query.fromDate;
+    const toDate = req.query.toDate;
+    const cityId = req.query.cityId;
+    const governmentId = req.query.governmentId;
 
     if (userId) {
-      query["userId"] = new mongoose.Types.ObjectId(userId);
+      query["userId._id"] = new mongoose.Types.ObjectId(userId);
     }
     if (clientId) {
-      query["clientId"] = new mongoose.Types.ObjectId(clientId);
+      query["clientId._id"] = new mongoose.Types.ObjectId(clientId);
+    }
+    if (cityId) {
+      query["cityId._id"] = new mongoose.Types.ObjectId(cityId);
+    }
+    if (governmentId) {
+      query["governmentId._id"] = new mongoose.Types.ObjectId(governmentId);
     }
 
     if (fromDate && toDate) {
@@ -826,9 +834,6 @@ exports.getReportSales = async (req, res, next) => {
       };
     }
     const allSale = await saleModel.aggregate([
-      {
-        $match: query,
-      },
       {
         $lookup: {
           from: "branchstocks",
@@ -911,6 +916,18 @@ exports.getReportSales = async (req, res, next) => {
       },
       { $unwind: "$cityId" },
       {
+        $lookup: {
+          from: "governments",
+          localField: "cityId.governmentId",
+          foreignField: "_id",
+          as: "governmentId",
+        },
+      },
+      { $unwind: "$governmentId" },
+      {
+        $match: query,
+      },
+      {
         $addFields: {
           totalFactoryPrice: {
             $multiply: ["$salesQuantity", "$ourRequestId.unitsCost"],
@@ -928,10 +945,25 @@ exports.getReportSales = async (req, res, next) => {
         },
       },
     ]);
+
+    const totalNetProfit = sum(allSale.map((payment) => payment.NetProfit));
+    const totalsalesQuantity = sum(
+      allSale.map((payment) => payment.salesQuantity)
+    );
+
+    const totalSalesValue = sum(
+      allSale.map((payment) => payment.salesValue)
+    );
+
     res.status(200).json({
       statusCode: res.statusCode,
       message: "successfully",
-      data: allSale.reverse(),
+      data: {
+        listOfSales: allSale,
+        totalsalesQuantity:totalsalesQuantity,
+        totalNetProfit: totalNetProfit,
+        totalSalesValue: totalSalesValue,
+      },
     });
   } catch (error) {
     res
@@ -940,19 +972,28 @@ exports.getReportSales = async (req, res, next) => {
   }
 };
 
-
 exports.getReportItemSales = async (req, res, next) => {
   try {
     let query = {};
     const clientId = req.query.clientId;
     const userId = req.query.userId;
+    // const isAllow = req.roleName == UserRole.ADMIN;
     const fromDate = req.query.fromDate;
     const toDate = req.query.toDate;
+    const cityId = req.query.cityId;
+    const governmentId = req.query.governmentId;
+
     if (userId) {
       query["userId._id"] = new mongoose.Types.ObjectId(userId);
     }
     if (clientId) {
       query["clientId._id"] = new mongoose.Types.ObjectId(clientId);
+    }
+    if (cityId) {
+      query["cityId._id"] = new mongoose.Types.ObjectId(cityId);
+    }
+    if (governmentId) {
+      query["governmentId._id"] = new mongoose.Types.ObjectId(governmentId);
     }
 
     if (fromDate && toDate) {
@@ -1035,6 +1076,24 @@ exports.getReportItemSales = async (req, res, next) => {
       },
       { $unwind: "$clientId" },
       {
+        $lookup: {
+          from: "cities",
+          localField: "clientId.cityId",
+          foreignField: "_id",
+          as: "cityId",
+        },
+      },
+      { $unwind: "$cityId" },
+      {
+        $lookup: {
+          from: "governments",
+          localField: "cityId.governmentId",
+          foreignField: "_id",
+          as: "governmentId",
+        },
+      },
+      { $unwind: "$governmentId" },
+      {
         $match: query,
       },
       {
@@ -1053,7 +1112,7 @@ exports.getReportItemSales = async (req, res, next) => {
     res.status(200).json({
       statusCode: res.statusCode,
       message: "successfully",
-      data: allSale.sort((a , b) => b.totalsalesQuantity - a.totalsalesQuantity),
+      data: allSale.sort((a, b) => b.totalsalesQuantity - a.totalsalesQuantity),
     });
   } catch (error) {
     res

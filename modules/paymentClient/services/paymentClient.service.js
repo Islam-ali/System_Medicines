@@ -17,6 +17,9 @@ exports.getAllPaymentClient = async (req, res, next) => {
   const isAllow = req.roleName == UserRole.ADMIN;
   const fromDate = req.query.fromDate;
   const toDate = req.query.toDate;
+  const date = new Date();
+  const currentYear = date.getFullYear();
+  const previousYear = currentYear - 1;
   let query = {};
   let matchSale = {};
   // if (!isAllow) {
@@ -28,6 +31,13 @@ exports.getAllPaymentClient = async (req, res, next) => {
       $lte: new Date(toDate),
     };
   }
+  //  else {
+  //   query = {
+  //     $expr: {
+  //       $and: [{ $eq: [{ $year: "$date" }, currentYear] }],
+  //     },
+  //   };
+  // }
   if (clientId) {
     matchSale["clientId._id"] = new mongoose.Types.ObjectId(clientId);
   }
@@ -56,11 +66,14 @@ exports.getAllPaymentClient = async (req, res, next) => {
       },
     ]);
 
-    const totalWasPaid = sum(allPaymentClient.map((payment) => payment.amount));;
+    const totalWasPaid = sum(allPaymentClient.map((payment) => payment.amount));
     res.status(200).json({
       statusCode: res.statusCode,
       message: "successfully",
-      data: { allpayment: allPaymentClient.reverse(), totalWasPaid: totalWasPaid },
+      data: {
+        allpayment: allPaymentClient.reverse(),
+        totalWasPaid: totalWasPaid,
+      },
     });
   } catch (error) {
     res

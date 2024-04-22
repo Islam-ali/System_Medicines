@@ -4,6 +4,8 @@ const convertArray = require("../../../core/shared/errorForm");
 const logClientModel = require("../../log-client/model/log-client.model");
 const sale = require("../../sale/model/sale.model");
 const { sum } = require("lodash");
+const paymentClient = require("../../paymentClient/model/paymentClient.model");
+const mongoose = require("mongoose");
 
 exports.listTypeOfClient = async (req, res, next) => {
   try {
@@ -27,7 +29,7 @@ exports.getAllClient = async (req, res, next) => {
   if (clientTypeId) {
     query["typeOfClient.id"] = parseInt(clientTypeId);
   }
-  
+
   if (clientId) {
     query["_id"] = parseInt(clientId);
   }
@@ -63,14 +65,62 @@ exports.getClientById = async (req, res, next) => {
         model: "government",
       },
     });
-    const listOfSales = await sale.find({ clientId: req.params.id });
+    const date = new Date();
+    const currentYear = date.getFullYear();
+    const matchQuery = {
+      clientId: new mongoose.Types.ObjectId(req.params.id),
+      $expr: {
+        $and: [{ $eq: [{ $year: "$date" }, currentYear] }],
+      },
+    };
+    const matchQuery2 = {
+      clientId: new mongoose.Types.ObjectId(req.params.id),
+      $expr: {
+        $and: [{ $ne: [{ $year: "$date" }, currentYear] }],
+      },
+    };
+    const listOfSales = await sale.aggregate([
+      {
+        $match: matchQuery,
+      },
+    ]);
+    const listOfPaymentClient = await paymentClient.aggregate([
+      {
+        $match: matchQuery,
+      },
+    ]);
 
+    const listOfSales2 = await sale.aggregate([
+      {
+        $match: matchQuery2,
+      },
+    ]);
+    const listOfPaymentClient2 = await paymentClient.aggregate([
+      {
+        $match: matchQuery2,
+      },
+    ]);
     const totalSalesValue = sum(listOfSales.map((sale) => sale.salesValue));
+    const totalwasPaid = sum(listOfPaymentClient.map((sale) => sale.amount));
+
+    const totalSalesValue2 = sum(listOfSales2.map((sale) => sale.salesValue));
+    const totalwasPaid2 = sum(listOfPaymentClient2.map((sale) => sale.amount));
+
+    const allSalesValue = totalSalesValue + totalSalesValue2;
+    const allwasPaid = totalwasPaid + totalwasPaid2;
 
     res.status(200).json({
       statusCode: res.statusCode,
       message: "successfully",
-      data: { ...client._doc, totalSalesValue: totalSalesValue },
+      data: {
+        ...client._doc,
+        totalSalesValue: totalSalesValue,
+        totalwasPaid: totalwasPaid,
+        totalSalesValue2: totalSalesValue2,
+        totalwasPaid2: totalwasPaid2,
+        carryOverBalance: totalSalesValue2 - totalwasPaid2,
+        balance: allSalesValue - allwasPaid,
+      },
     });
   } catch (error) {
     res

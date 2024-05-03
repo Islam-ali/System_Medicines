@@ -5,6 +5,13 @@ const validatepaymentClient = require('../validation/paymentClient.validation')
 const {verifyToken,checkPermission} = require('../../../middelware/auth.middleware')
 
 router.get('/getAllPaymentClient' , verifyToken, checkPermission('paymentClient.read'),paymentClient.getAllPaymentClient);
+router.get(
+  "/getAllTotalPaymentAndSalesForClient",
+  verifyToken,
+  checkPermission("paymentClient.read"),
+  paymentClient.getAllTotalPaymentAndSalesForClient
+);
+
 
 router.get('/getPaymentClientById/:Id' , verifyToken, checkPermission('paymentClient.read'),paymentClient.getPaymentClientById);
 

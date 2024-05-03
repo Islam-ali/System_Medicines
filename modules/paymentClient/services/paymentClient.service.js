@@ -9,6 +9,7 @@ const mongoose = require("mongoose");
 const { clientModel } = require("../../client/model/client.model");
 const treasurAmount = require("../../treasur/model/treasurAmount.model");
 const { sum } = require("lodash");
+const sale = require("../../sale/model/sale.model");
 
 // get All type of Factories
 exports.getAllPaymentClient = async (req, res, next) => {
@@ -289,5 +290,33 @@ exports.deletePaymentClient = async (req, res) => {
       statusCode: res.statusCode,
       message: error.message,
     });
+  }
+};
+
+// get All type of Factories
+exports.getAllTotalPaymentAndSalesForClient = async (req, res, next) => {
+  const date = new Date();
+  const currentYear = date.getFullYear();
+
+  try {
+    const allPaymentClient = await paymentClientModel.find();
+    const allsales = await sale.find();
+
+    const totalWasPaid = sum(allPaymentClient.map((payment) => payment.amount));
+    const totalSalesValue = sum(allsales.map((sales) => sales.salesValue));
+
+    res.status(200).json({
+      statusCode: res.statusCode,
+      message: "successfully",
+      data: {
+        totalWasPaid: totalWasPaid,
+        totalSalesValue: totalSalesValue,
+        balance: totalSalesValue - totalWasPaid
+      },
+    });
+  } catch (error) {
+    res
+      .status(500)
+      .json({ statusCode: res.statusCode, message: error.message });
   }
 };

@@ -6,6 +6,8 @@ const { validationResult } = require("express-validator");
 const ourRequest = require("../../ourRequest/model/ourRequest.model");
 const { sum } = require("lodash");
 const PaymentForFactory = require("../../PaymentForFactories/model/paymentForFactories.model");
+const mongoose = require("mongoose");
+const paymentType = require("../../../core/enums/paymentType.enum");
 
 // Create a new factory
 exports.createFactory = async (req, res) => {
@@ -68,25 +70,96 @@ exports.getFactoryById = async (req, res) => {
     if (!factory) {
       return res.status(404).json({ message: "Factory not found" });
     }
+    // const listOfPayment = await PaymentForFactory.find({
+    //   factoryId: factory._id,
+    // });
+    // const totalWasPaid = sum(
+    //   listOfPayment.map((payment) => payment.cashAmount)
+    // );
 
+    const date = new Date();
+    const currentYear = date.getFullYear();
+    const matchQuery = {
+      factoryId: new mongoose.Types.ObjectId(factory._id),
+      $expr: {
+        $and: [
+          { $eq: [{ $year: "$cashDate" }, currentYear] },
+          { $ne: ["$paymentType", paymentType.OTHER] },
+        ],
+      },
+    };
+    const matchQuery2 = {
+      factoryId: new mongoose.Types.ObjectId(factory._id),
+      $expr: {
+        $and: [
+          { $ne: [{ $year: "$cashDate" }, currentYear] },
+          { $ne: ["$paymentType", paymentType.OTHER] },
+        ],
+      },
+    };
+    const objPaymentType = {
+      factoryId: new mongoose.Types.ObjectId(factory._id),
+      paymentType: paymentType.OTHER,
+    };
+    const listOfPaymentForFactorysForOther = await PaymentForFactory.aggregate([
+      {
+        $match: objPaymentType,
+      },
+    ]);
+    const listOfPaymentForFactorys = await PaymentForFactory.aggregate([
+      {
+        $match: matchQuery,
+      },
+    ]);
+
+    const listOfPaymentForFactorys2 = await PaymentForFactory.aggregate([
+      {
+        $match: matchQuery2,
+      },
+    ]);
+    // const listOfOurRequests = await ourRequest.aggregate([
+    //   {
+    //     $match: matchQuery,
+    //   },
+    // ]);
+
+    // const listOfOurRequests2 = await ourRequest.aggregate([
+    //   {
+    //     $match: matchQuery2,
+    //   },
+    // ]);
     const listOfOurRequests = await ourRequest.find({ factoryId: factory._id });
     const totalOurRequest = sum(
       listOfOurRequests.map((ourRequest) => ourRequest.totalcost)
     );
 
-    const listOfPayment = await PaymentForFactory.find({
-      factoryId: factory._id,
-    });
-    const totalWasPaid = sum(
-      listOfPayment.map((payment) => payment.cashAmount)
+    // const totalOurRequest2 = sum(
+    //   listOfOurRequests2.map((ourRequest) => ourRequest.totalcost)
+    // );
+
+    const totalwasPaid = sum(
+      listOfPaymentForFactorys.map((payment) => payment.cashAmount)
     );
+    const totalwasPaid2 = sum(
+      listOfPaymentForFactorys2.map((payment) => payment.cashAmount)
+    );
+
+    const totalForOther = sum(
+      listOfPaymentForFactorysForOther.map((payment) => payment.cashAmount)
+    );
+    // const allOurRequest = totalOurRequest + totalOurRequest2;
+    const allwasPaid = totalwasPaid + totalwasPaid2;
+
     res.status(200).json({
       statusCode: res.statusCode,
       message: "successfully",
       data: {
         ...factory._doc,
         totalOurRequest: totalOurRequest,
-        totalWasPaid: totalWasPaid,
+        allwasPaid: allwasPaid,
+        carryOverBalance: totalOurRequest - totalwasPaid2,
+        balance: totalOurRequest - allwasPaid,
+        totalForOther: totalForOther,
       },
     });
   } catch (error) {

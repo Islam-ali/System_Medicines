@@ -1,4 +1,5 @@
 const mongoose = require("mongoose");
+const paymentType = require("../../../core/enums/paymentType.enum");
 const paymentForFactorySchema = new mongoose.Schema({
   factoryId: {
     type: mongoose.Schema.Types.ObjectId,
@@ -10,7 +11,11 @@ const paymentForFactorySchema = new mongoose.Schema({
   //   ref: "ItemsFactory",
   //   default: null
   // },
-  // patchNumber: { type: Number , default:0},
+  paymentType: {
+    type: String,
+    enum: [paymentType.DRUG, paymentType.OTHER],
+    default: paymentType.DRUG,
+  },
   ourRequestId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "OurRequest",

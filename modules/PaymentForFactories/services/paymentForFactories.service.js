@@ -200,7 +200,7 @@ exports.createPaymentForFactory = async (req, res) => {
     });
   }
   try {
-    const { factoryId, cashAmount, cashDate } = req.body;
+    const { factoryId, cashAmount, cashDate} = req.body;
     const objFactory = await Factory.findOne({
       _id: factoryId,
     });
@@ -476,7 +476,7 @@ exports.updatePaymentForFactory = async (req, res) => {
     const objPaymentFactory = await PaymentForFactory.findOne({
       _id: req.params.id,
     });
-    const { factoryId, cashAmount, cashDate, note, ourRequestId } =
+    const { factoryId, cashAmount, cashDate, note, ourRequestId, paymentType } =
       req.body;
     const objFactory = await Factory.findOne({
       _id: objPaymentFactory.factoryId,
@@ -497,6 +497,8 @@ exports.updatePaymentForFactory = async (req, res) => {
     objPaymentFactory.cashDate = cashDate;
     objPaymentFactory.note = note;
     objPaymentFactory["ourRequestId"] = ourRequestId;
+    objPaymentFactory["paymentType"] = paymentType;
+
 
     // let newPaymentForFactoryId;
     await objPaymentFactory.save().then(async (result) => {

@@ -157,6 +157,7 @@ exports.getFactoryById = async (req, res) => {
         ...factory._doc,
         totalOurRequest: totalOurRequest,
         allwasPaid: allwasPaid,
+        wasPaidInYear:totalwasPaid,
         carryOverBalance: totalOurRequest - totalwasPaid2,
         balance: totalOurRequest - allwasPaid,
         totalForOther: totalForOther,

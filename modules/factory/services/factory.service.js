@@ -79,6 +79,22 @@ exports.getFactoryById = async (req, res) => {
 
     const date = new Date();
     const currentYear = date.getFullYear();
+    const matchQueryOurRequest = {
+      factoryId: new mongoose.Types.ObjectId(factory._id),
+      $expr: {
+        $and: [
+          { $eq: [{ $year: "$recevingDate" }, currentYear] },
+        ],
+      },
+    };
+    const matchQueryOurRequest2 = {
+      factoryId: new mongoose.Types.ObjectId(factory._id),
+      $expr: {
+        $and: [
+          { $ne: [{ $year: "$recevingDate" }, currentYear] },
+        ],
+      },
+    };
     const matchQuery = {
       factoryId: new mongoose.Types.ObjectId(factory._id),
       $expr: {
@@ -128,7 +144,19 @@ exports.getFactoryById = async (req, res) => {
     //     $match: matchQuery2,
     //   },
     // ]);
-    const listOfOurRequests = await ourRequest.find({ factoryId: factory._id });
+    const listOfOurRequestsInYear = await ourRequest.aggregate([
+      {
+        $match: matchQueryOurRequest,
+      },
+    ]);
+    const totalOurRequestsInYear = sum(
+      listOfOurRequestsInYear.map((ourRequest) => ourRequest.totalcost)
+    );
+    const listOfOurRequests = await ourRequest.aggregate([
+      {
+        $match: matchQueryOurRequest2,
+      },
+    ]);
     const totalOurRequest = sum(
       listOfOurRequests.map((ourRequest) => ourRequest.totalcost)
     );
@@ -149,6 +177,7 @@ exports.getFactoryById = async (req, res) => {
     );
     // const allOurRequest = totalOurRequest + totalOurRequest2;
     const allwasPaid = totalwasPaid + totalwasPaid2;
+    const allTotalOurRequest = totalOurRequest + totalOurRequestsInYear;
 
     res.status(200).json({
       statusCode: res.statusCode,
@@ -156,10 +185,11 @@ exports.getFactoryById = async (req, res) => {
       data: {
         ...factory._doc,
         totalOurRequest: totalOurRequest,
+        totalOurRequestsInYear:totalOurRequestsInYear,
         allwasPaid: allwasPaid,
         wasPaidInYear:totalwasPaid,
         carryOverBalance: totalOurRequest - totalwasPaid2,
-        balance: totalOurRequest - allwasPaid,
+        balance: allTotalOurRequest - allwasPaid,
         totalForOther: totalForOther,
       },
     });

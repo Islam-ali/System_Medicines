@@ -100,6 +100,7 @@ exports.getClientById = async (req, res, next) => {
         $match: matchQuery2,
       },
     ]);
+    
     const totalSalesValue = sum(listOfSales.map((sale) => sale.salesValue));
     const totalwasPaid = sum(listOfPaymentClient.map((sale) => sale.amount));
 
@@ -118,7 +119,7 @@ exports.getClientById = async (req, res, next) => {
         totalwasPaid: totalwasPaid,
         totalSalesValue2: totalSalesValue2,
         totalwasPaid2: totalwasPaid2,
-        carryOverBalance: totalSalesValue2 - totalwasPaid2,
+        balanceRelay : totalSalesValue2 - totalwasPaid2,
         balance: allSalesValue - allwasPaid,
       },
     });

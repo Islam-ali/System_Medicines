@@ -295,23 +295,60 @@ exports.deletePaymentClient = async (req, res) => {
 
 // get All type of Factories
 exports.getAllTotalPaymentAndSalesForClient = async (req, res, next) => {
-  const date = new Date();
-  const currentYear = date.getFullYear();
-
   try {
-    const allPaymentClient = await paymentClientModel.find();
-    const allsales = await sale.find();
+    const date = new Date();
+    const currentYear = date.getFullYear();
+    const matchQuery = {
+      $expr: {
+        $and: [{ $eq: [{ $year: "$date" }, currentYear] }],
+      },
+    };
+    const matchQuery2 = {
+      $expr: {
+        $and: [{ $ne: [{ $year: "$date" }, currentYear] }],
+      },
+    };
+    const listOfSales = await sale.aggregate([
+      {
+        $match: matchQuery,
+      },
+    ]);
+    const listOfPaymentClient = await paymentClientModel.aggregate([
+      {
+        $match: matchQuery,
+      },
+    ]);
 
-    const totalWasPaid = sum(allPaymentClient.map((payment) => payment.amount));
-    const totalSalesValue = sum(allsales.map((sales) => sales.salesValue));
+    const listOfSales2 = await sale.aggregate([
+      {
+        $match: matchQuery2,
+      },
+    ]);
+    const listOfPaymentClient2 = await paymentClientModel.aggregate([
+      {
+        $match: matchQuery2,
+      },
+    ]);
+
+    const totalSalesValue = sum(listOfSales.map((sale) => sale.salesValue));
+    const totalwasPaid = sum(listOfPaymentClient.map((payment) => payment.amount));
+
+    const totalSalesValue2 = sum(listOfSales2.map((sale) => sale.salesValue));
+    const totalwasPaid2 = sum(listOfPaymentClient2.map((payment) => payment.amount));
+
+    const allSalesValue = totalSalesValue + totalSalesValue2;
+    const allwasPaid = totalwasPaid + totalwasPaid2;
 
     res.status(200).json({
       statusCode: res.statusCode,
       message: "successfully",
       data: {
-        totalWasPaid: totalWasPaid,
         totalSalesValue: totalSalesValue,
-        balance: totalSalesValue - totalWasPaid
+        totalwasPaid: totalwasPaid,
+        totalSalesValue2: totalSalesValue2,
+        totalwasPaid2: totalwasPaid2,
+        balanceRelay: totalSalesValue2 - totalwasPaid2,
+        balance: allSalesValue - allwasPaid,
       },
     });
   } catch (error) {

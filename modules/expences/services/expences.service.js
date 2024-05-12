@@ -3,17 +3,26 @@ const expencesModel = require("../model/expences.model");
 
 exports.getAllExpences = async (req, res, next) => {
   try {
-    const queryDate = req.query.date;
-    const year = new Date(queryDate).getFullYear();
-    const month = new Date(queryDate).getMonth() + 1; // Months are zero-based, so add 1
-    const matchQuery = {
-      $expr: {
-        $and: [
-          { $eq: [{ $year: "$cashDate" }, year] },
-          { $eq: [{ $month: "$cashDate" }, month] },
-        ],
-      },
-    };
+    // const queryDate = req.query.date;
+    // const year = new Date(queryDate).getFullYear();
+    // const month = new Date(queryDate).getMonth() + 1;
+    const fromDate = req.query.fromDate;
+    const toDate = req.query.toDate;
+    let matchQuery = {};
+    if (fromDate && toDate) {
+      matchQuery["cashDate"] = {
+        $gte: new Date(fromDate),
+        $lte: new Date(toDate),
+      };
+    }
+    // const matchQuery = {
+    //   $expr: {
+    //     $and: [
+    //       { $eq: [{ $year: "$cashDate" }, year] },
+    //       { $eq: [{ $month: "$cashDate" }, month] },
+    //     ],
+    //   },
+    // };
     const allExpences = await expencesModel.aggregate([
       {
         $match: matchQuery,

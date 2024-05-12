@@ -8,18 +8,26 @@ const sale = require("../../sale/model/sale.model");
 
 exports.getAllIncomes = async (req, res, next) => {
   try {
-    const queryDate = req.query.date;
-    const year = new Date(queryDate).getFullYear();
-    const month = new Date(queryDate).getMonth() + 1; // Months are zero-based, so add 1
-    const matchQuery = {
-      $expr: {
-        $and: [
-          { $eq: [{ $year: "$date" }, year] },
-          { $eq: [{ $month: "$date" }, month] },
-        ],
-      },
-    };
-
+    // const queryDate = req.query.date;
+    // const year = new Date(queryDate).getFullYear();
+    // const month = new Date(queryDate).getMonth() + 1; // Months are zero-based, so add 1
+    // const matchQuery = {
+    //   $expr: {
+    //     $and: [
+    //       { $eq: [{ $year: "$date" }, year] },
+    //       { $eq: [{ $month: "$date" }, month] },
+    //     ],
+    //   },
+    // };
+    const fromDate = req.query.fromDate;
+    const toDate = req.query.toDate;
+    let matchQuery = {};
+    if (fromDate && toDate) {
+      matchQuery["date"] = {
+        $gte: new Date(fromDate),
+        $lte: new Date(toDate),
+      };
+    }
     const allIncomes = await paymentClientModel.aggregate([
       {
         $lookup: {

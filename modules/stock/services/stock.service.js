@@ -463,7 +463,7 @@ exports.getTotalAmountInStock = async (req, res) => {
 
     const totalAmountRowMaterials = listOfStock.reduce((sum, item) => {
       if (item.classificationId === 1) {
-        return sum + item.unitsNumber * item.publicPrice;
+        return sum + item.unitsNumber * item.unitsCost;
       }
       return sum;
     }, 0);
@@ -473,10 +473,10 @@ exports.getTotalAmountInStock = async (req, res) => {
       }
       return sum;
     }, 0);
-    const totalAmount = listOfStock.reduce((sum, item) => {
-      return sum + item.unitsNumber * item.publicPrice;
-      return sum;
-    }, 0);
+    // const totalAmount = listOfStock.reduce((sum, item) => {
+    //   return sum + item.unitsNumber * item.publicPrice;
+    //   return sum;
+    // }, 0);
 
     res.status(200).json({
       statusCode: res.statusCode,
@@ -484,7 +484,7 @@ exports.getTotalAmountInStock = async (req, res) => {
       data: {
         totalAmountRowMaterials: totalAmountRowMaterials,
         totalAmountManufacturing: totalAmountManufacturing,
-        totalAmount: totalAmount,
+        totalAmount: totalAmountRowMaterials + totalAmountManufacturing,
       },
     });
   } catch (error) {

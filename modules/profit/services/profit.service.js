@@ -825,11 +825,17 @@ exports.getReportSales = async (req, res, next) => {
     if (userId) {
       query["userId._id"] = new mongoose.Types.ObjectId(userId);
     }
-    if (clientId) {
-      query["clientId._id"] = new mongoose.Types.ObjectId(clientId);
-    }
+    // if (clientId) {
+    //   query["clientId._id"] = new mongoose.Types.ObjectId(clientId);
+    // }
     if (cityId) {
       query["cityId._id"] = new mongoose.Types.ObjectId(cityId);
+    }
+    if (clientId) {
+      const clientIds = Array.isArray(clientId) ? clientId : [clientId];
+      query["clientId._id"] = {
+        $in: clientIds.map(id => new mongoose.Types.ObjectId(id)),
+      };
     }
     if (governmentId) {
       query["governmentId._id"] = new mongoose.Types.ObjectId(governmentId);
@@ -951,6 +957,9 @@ exports.getReportSales = async (req, res, next) => {
             $subtract: ["$salesValue", "$totalFactoryPrice"],
           },
         },
+      },
+      {
+        $sort: { date: -1 } // Sort by date in ascending order. Use -1 for descending order.
       },
     ]);
 

@@ -18,7 +18,7 @@ exports.getAllSales = async (req, res, next) => {
     const userId = req.userId;
     const isAllow = req.roleName == UserRole.ADMIN;
     const fromDate = req.query.fromDate;
-    const toDate = req.query.toDate; 
+    const toDate = req.query.toDate;
     if (!isAllow) {
       query["userId"] = new mongoose.Types.ObjectId(userId);
     }
@@ -154,104 +154,111 @@ exports.getSaleById = async (req, res) => {
   }
 };
 
-// create Sale
 exports.createSale = async (req, res, next) => {
+  // const session = await mongoose.startSession();
+  // session.startTransaction();
+
   const body = req.body;
+  const listOfSales = body.listOfSales;
   const errors = validationResult(req);
+
   if (!errors.isEmpty()) {
     const convArray = new convertArray(errors.array());
     return res.status(400).json({
       statusCode: res.statusCode,
-      message: "invalid Error",
+      message: "Invalid Error",
       errors: convArray.errorForm(),
     });
   }
+
   try {
-    const isAllow = req.roleName == UserRole.ADMIN;
+    const isAllow = req.roleName === UserRole.ADMIN;
     const userId = isAllow ? body.userId : req.userId;
-    const objBranchStock = await branchStockModel
-      .findOne({
+
+    
+    for (const element of listOfSales) {
+      const objBranchStock = await branchStockModel.findOne({
         userId: userId,
-        _id: body.branchStockId,
-      })
-      .populate({
+        _id: element.branchStockId,
+      }).populate({
         path: "userId",
         model: "users",
         select: "_roleId",
-      })
-      .populate({
+      }).populate({
         path: "stockId",
         model: "Stock",
       });
-    if (!objBranchStock) {
-      return res.status(404).json({
-        statusCode: res.statusCode,
-        message: "Branch stock not found",
+  
+      if (!objBranchStock) {
+        // await session.abortTransaction();
+        // session.endSession();
+        return res.status(404).json({
+          statusCode: res.statusCode,
+          message: "Branch stock not found",
+        });
+      }
+  
+      const oldunitsNumber = objBranchStock.unitsNumber;
+      if (oldunitsNumber < element.salesQuantity) {
+        // await session.abortTransaction();
+        // session.endSession();
+        return res.status(400).json({
+          statusCode: res.statusCode,
+          message: "Sales Quantity more than units Number in stock",
+        });
+      }
+
+      // Perform calculations
+      const pharmacyPrice = ((100 - element.discount) / 100) * objBranchStock.publicPrice;
+      const salesValue = pharmacyPrice * element.salesQuantity;
+      const netProfit = pharmacyPrice - objBranchStock.stockId.unitsCost;
+      const totalNetProfit = netProfit * element.salesQuantity;
+
+      const newSale = new saleModel({
+        branchStockId: element.branchStockId,
+        clientId: body.clientId,
+        userId: userId,
+        date: body.date,
+        discount: element.discount || 0,
+        bouns: element.bouns || 0,
+        salesQuantity: element.salesQuantity,
+        received: 0,
+        pharmacyPrice: pharmacyPrice,
+        salesValue: salesValue,
+        balance: salesValue,
+        netProfit: netProfit,
+        totalNetProfit: totalNetProfit,
+        realProfit: 0,
       });
-    }
-    if (objBranchStock.unitsNumber < body.salesQuantity) {
-      return res.status(400).json({
-        statusCode: res.statusCode,
-        message: "sales Quantity more than units Number in stock ",
-      });
-    }
-    // Perform calculations
-    const pharmacyPrice =
-      ((100 - body.discount) / 100) * objBranchStock.publicPrice;
-    // const payment = body.payment;
-    const salesValue = pharmacyPrice * body.salesQuantity;
-    const netProfit = pharmacyPrice - objBranchStock.stockId.unitsCost;
-    const totalNetProfit = netProfit * body.salesQuantity;
-    const newSale = new saleModel({
-      branchStockId: body.branchStockId,
-      clientId: body.clientId,
-      userId: userId,
-      date: body.date,
-      discount: body.discount || 0,
-      bouns: body.bouns || 0,
-      salesQuantity: body.salesQuantity,
-      // payment: payment,
-      // calculates
-      received: 0,
-      pharmacyPrice: pharmacyPrice,
-      salesValue: salesValue,
-      balance: salesValue,
-      netProfit: netProfit,
-      totalNetProfit: totalNetProfit,
-      realProfit: 0,
-    });
-    // update branch stock
-    objBranchStock.unitsNumber -= body.salesQuantity;
 
-    // update stock
-    // const objStock = await stockModel.findOne({ _id: objBranchStock.stockId });
+      objBranchStock.unitsNumber -= element.salesQuantity;
 
-    // objStock.unitsNumber -= body.salesQuantity;
-    // objStock.totalcost = objStock.unitsNumber * objStock.unitsCost;
+      await Promise.all([
+        newSale.save(),
+        objBranchStock.save(),
+      ]);
 
-    await Promise.all([
-      newSale.save(),
-      objBranchStock.save(),
-      // objStock.save(),
-    ]).then(async (result) => {
       const objLogClient = {
-        clientId: result[0].clientId,
-        saleId: result[0]._id,
+        clientId: newSale.clientId,
+        saleId: newSale._id,
         creationBy: req.userId,
-        beforUpdateSale: null,
-        afterUpdateSale: result[0],
+        beforeUpdateSale: null,
+        afterUpdateSale: newSale,
         type: typeLogClientEnum.SALE,
         methodName: methodTypeEnum.CREATE,
         creationDate: new Date(),
       };
+
       await logClientModel.create(objLogClient);
-    });
+    }
 
     res.status(201).json({
       statusCode: res.statusCode,
       message: "Created Sale successfully",
     });
   } catch (error) {
+    // await session.abortTransaction();
+    // session.endSession();
     res.status(500).json({
       statusCode: res.statusCode,
       message: "Failed to create sale",
